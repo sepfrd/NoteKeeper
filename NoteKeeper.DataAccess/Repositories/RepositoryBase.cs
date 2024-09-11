@@ -9,10 +9,12 @@ namespace NoteKeeper.DataAccess.Repositories;
 public abstract class RepositoryBase<T> : IRepositoryBase<T>
     where T : DomainEntity
 {
+    private readonly DbContext _dbContext;
     private readonly DbSet<T> _dbSet;
 
     protected RepositoryBase(DbContext dbContext)
     {
+        _dbContext = dbContext;
         _dbSet = dbContext.Set<T>();
     }
 
@@ -68,4 +70,7 @@ public abstract class RepositoryBase<T> : IRepositoryBase<T>
 
     public T Delete(T entity) =>
         _dbSet.Remove(entity).Entity;
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        await _dbContext.SaveChangesAsync(cancellationToken);
 }

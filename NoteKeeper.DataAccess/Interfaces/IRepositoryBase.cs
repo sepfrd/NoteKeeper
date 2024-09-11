@@ -18,4 +18,6 @@ public interface IRepositoryBase<T> where T : DomainEntity
     Task<T?> GetByIdAsync(long id, Func<IQueryable<T>, IIncludableQueryable<T, object?>>? include = null, CancellationToken cancellationToken = default);
 
     T Delete(T entity);
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
