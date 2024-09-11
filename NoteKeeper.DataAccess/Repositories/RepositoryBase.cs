@@ -66,6 +66,6 @@ public abstract class RepositoryBase<T> : IRepositoryBase<T>
         return await query.SingleOrDefaultAsync(cancellationToken);
     }
 
-    public void Delete(T entity) =>
-        _dbSet.Remove(entity);
+    public T Delete(T entity) =>
+        _dbSet.Remove(entity).Entity;
 }
