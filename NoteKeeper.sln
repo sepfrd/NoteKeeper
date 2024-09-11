@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoteKeeper.Presentation", "NoteKeeper.Presentation\NoteKeeper.Presentation.csproj", "{048AC5B9-647A-4CDB-A185-06CA91DD6FDF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoteKeeper.DataAccess", "NoteKeeper.DataAccess\NoteKeeper.DataAccess.csproj", "{B2B6FD1C-362D-413D-90BA-AE69FD3DF5C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NoteKeeper.Business", "NoteKeeper.Business\NoteKeeper.Business.csproj", "{2DAB80EF-0389-411E-B8B1-DB726DDCA702}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{048AC5B9-647A-4CDB-A185-06CA91DD6FDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{048AC5B9-647A-4CDB-A185-06CA91DD6FDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{048AC5B9-647A-4CDB-A185-06CA91DD6FDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{048AC5B9-647A-4CDB-A185-06CA91DD6FDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2B6FD1C-362D-413D-90BA-AE69FD3DF5C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2B6FD1C-362D-413D-90BA-AE69FD3DF5C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2B6FD1C-362D-413D-90BA-AE69FD3DF5C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2B6FD1C-362D-413D-90BA-AE69FD3DF5C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DAB80EF-0389-411E-B8B1-DB726DDCA702}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DAB80EF-0389-411E-B8B1-DB726DDCA702}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DAB80EF-0389-411E-B8B1-DB726DDCA702}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DAB80EF-0389-411E-B8B1-DB726DDCA702}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
