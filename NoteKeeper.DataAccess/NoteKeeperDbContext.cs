@@ -1,4 +1,5 @@
 using System.Data;
+using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.DataAccess.Entities;
 
@@ -19,10 +20,6 @@ public class NoteKeeperDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         modelBuilder
-            .Entity<DomainEntity>()
-            .HasKey(entity => entity.Id);
-
-        modelBuilder
             .Entity<Note>()
             .HasOne<User>(note => note.User)
             .WithMany(user => user.Notes)
@@ -31,13 +28,13 @@ public class NoteKeeperDbContext : DbContext
         modelBuilder
             .Entity<Note>()
             .Property(note => note.Title)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(200);
 
         modelBuilder
             .Entity<Note>()
             .Property(note => note.Content)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(2000);
 
         modelBuilder
@@ -48,35 +45,47 @@ public class NoteKeeperDbContext : DbContext
         modelBuilder
             .Entity<User>()
             .Property(user => user.Username)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(32);
 
         modelBuilder
             .Entity<User>()
             .Property(user => user.FirstName)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(100);
 
         modelBuilder
             .Entity<User>()
             .Property(user => user.LastName)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(100);
 
         modelBuilder
             .Entity<User>()
             .Property(user => user.PasswordHash)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(500);
 
         modelBuilder
             .Entity<User>()
             .Property(user => user.Email)
-            .HasColumnType(SqlDbType.NVarChar.ToString())
+            .HasColumnType(SqlDbType.VarChar.ToString())
             .HasMaxLength(320);
 
         modelBuilder
             .Entity<User>()
             .Ignore(user => user.FullName);
+
+        modelBuilder
+            .Entity<User>()
+            .HasData([
+                new User
+                {
+                    Id = 1L,
+                    Username = "sepehr_frd",
+                    Email = "sepfrd@outlook.com",
+                    PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword("Sfr1376.", HashType.SHA512, 12)
+                }
+            ]);
     }
 }

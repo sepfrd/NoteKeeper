@@ -6,16 +6,16 @@ using NoteKeeper.DataAccess.Interfaces;
 
 namespace NoteKeeper.DataAccess.Repositories;
 
-public abstract class RepositoryBase<T> : IRepositoryBase<T>
+public class RepositoryBase<T> : IRepositoryBase<T>
     where T : DomainEntity
 {
-    private readonly DbContext _dbContext;
+    private readonly DbContext _noteKeeperDbContext;
     private readonly DbSet<T> _dbSet;
 
-    protected RepositoryBase(DbContext dbContext)
+    public RepositoryBase(NoteKeeperDbContext noteKeeperDbContext)
     {
-        _dbContext = dbContext;
-        _dbSet = dbContext.Set<T>();
+        _noteKeeperDbContext = noteKeeperDbContext;
+        _dbSet = noteKeeperDbContext.Set<T>();
     }
 
     public async Task<T> CreateAsync(T entity, CancellationToken cancellationToken = default)
@@ -72,5 +72,5 @@ public abstract class RepositoryBase<T> : IRepositoryBase<T>
         _dbSet.Remove(entity).Entity;
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _noteKeeperDbContext.SaveChangesAsync(cancellationToken);
 }
