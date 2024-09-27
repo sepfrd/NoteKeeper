@@ -117,6 +117,20 @@ public class AuthService : IAuthService
         return new ClaimsPrincipal(identity);
     }
 
+    public async Task<User> GetSignedInUserAsync(CancellationToken cancellationToken = default)
+    {
+        var userUuid = _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtExtendedConstants.JwtUuidClaimType)!;
+
+        var users = await _userRepository.GetAllAsync(
+            1,
+            1,
+            user => user.Uuid.ToString() == userUuid,
+            null,
+            cancellationToken);
+
+        return users.Single();
+    }
+
     private string GenerateEd25519Jwt(User user)
     {
         var jwtConfigurationDto = _configuration.GetSection(ConfigurationConstants.Ed25519JwtConfigurationSectionKey).Get<JwtConfigurationDto>()!;
@@ -141,7 +155,8 @@ public class AuthService : IAuthService
             new(JwtRegisteredClaimNames.Exp, expirationDateUnixTime, ClaimValueTypes.Integer64),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(JwtExtendedConstants.JwtUsernameClaimType, user.Username)
+            new(JwtExtendedConstants.JwtUsernameClaimType, user.Username),
+            new(JwtExtendedConstants.JwtUuidClaimType, user.Uuid.ToString())
         };
 
         var jwtHeader = new EdDSAJwtHeader();

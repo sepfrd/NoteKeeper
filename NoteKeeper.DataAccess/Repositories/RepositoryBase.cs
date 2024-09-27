@@ -68,6 +68,21 @@ public class RepositoryBase<T> : IRepositoryBase<T>
         return await query.SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<T?> GetByUuidAsync(
+        Guid uuid,
+        Func<IQueryable<T>, IIncludableQueryable<T, object?>>? include = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbSet.Where(entity => entity.Uuid == uuid);
+
+        if (include != null)
+        {
+            query = include(query);
+        }
+
+        return await query.SingleOrDefaultAsync(cancellationToken);
+    }
+
     public T Delete(T entity) =>
         _dbSet.Remove(entity).Entity;
 

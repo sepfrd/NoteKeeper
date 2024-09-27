@@ -55,7 +55,6 @@ public static class ServiceCollectionExtensions
             {
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             })
             .Services
             .AddEndpointsApiExplorer();

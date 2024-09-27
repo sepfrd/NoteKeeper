@@ -12,8 +12,16 @@ public static class MessageConstants
     public const string PropertyNotUniqueMessage = "{0} is already taken.\nChoose another {1}.";
     public const string InvalidCredentialsMessage = "Username/Email and/or password not correct.";
 
+    // ---------------------------- Forbidden (403) Messages ----------------------------
+    public const string ForbiddenActionMessage = "You do not have permission to {0} this {1}.";
+
+    // ---------------------------- Not Found (404) Messages ----------------------------
+    public const string EntityNotFoundByGuidMessage = "{0} with GUID of {1} not found.";
+
     // ---------------------------- OK (200) Messages ----------------------------
     public const string SuccessfulLoginMessage = "Successfully authenticated.";
+    public const string SuccessfulUpdateMessage = "Successfully updated {0} entity.";
+    public const string SuccessfulDeleteMessage = "Successfully deleted {0} entity.";
 
     // ---------------------------- Exception Messages ----------------------------
 

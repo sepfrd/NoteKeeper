@@ -8,4 +8,5 @@ public static class JwtExtendedConstants
     public const string JwtHeaderCurveKey = "crv";
     public const string JwtHeaderKeyTypeKey = "kty";
     public const string JwtUsernameClaimType = "username";
+    public const string JwtUuidClaimType = "uuid";
 }
