@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
@@ -62,7 +63,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddRepositories(this IServiceCollection services) =>
         services
             .AddScoped<IRepositoryBase<User>, RepositoryBase<User>>()
-            .AddScoped<IRepositoryBase<Note>, RepositoryBase<Note>>();
+            .AddScoped<IRepositoryBase<Note>, RepositoryBase<Note>>()
+            .AddScoped<IRepositoryBase<GoogleToken>, RepositoryBase<GoogleToken>>();
 
     public static IServiceCollection AddServices(this IServiceCollection services) =>
         services
@@ -98,5 +100,12 @@ public static class ServiceCollectionExtensions
             .AddSingleton(new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+    public static IServiceCollection AddMemoryCacheEntryOptions(this IServiceCollection services) =>
+        services
+            .AddSingleton(new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5d)
             });
 }

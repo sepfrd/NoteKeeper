@@ -24,7 +24,6 @@ public class AuthController : ControllerBase
         return StatusCode((int)result.HttpStatusCode, result);
     }
 
-    [Authorize]
     [HttpOptions]
     public IActionResult AuthOptions()
     {
@@ -33,5 +32,32 @@ public class AuthController : ControllerBase
             .Add(new KeyValuePair<string, StringValues>("Allow", $"{HttpMethods.Post}"));
 
         return Ok();
+    }
+
+    [HttpGet]
+    [Authorize]
+    [Route("oauth2/google")]
+    public async Task<IActionResult> GetGoogleOAuth2RequestUrl(CancellationToken cancellationToken)
+    {
+        var result = await _authService.BuildGoogleOAuth2RequestUrlAsync(cancellationToken);
+
+        return StatusCode((int)result.HttpStatusCode, result);
+    }
+
+    [HttpGet]
+    [Route("oauth2/google/code")]
+    public async Task<IActionResult> ReceiveAuthorizationCode(
+        [FromQuery] string state,
+        [FromQuery] string code,
+        [FromQuery] string scope,
+        [FromQuery] string authuser,
+        [FromQuery] string prompt,
+        CancellationToken cancellationToken)
+    {
+        var exchangeRequestDto = new GoogleExchangeCodeForTokenRequestDto(state, code, scope, authuser, prompt);
+
+        var result = await _authService.GoogleExchangeCodeForTokenAsync(exchangeRequestDto, cancellationToken);
+
+        return StatusCode((int)result.HttpStatusCode, result);
     }
 }

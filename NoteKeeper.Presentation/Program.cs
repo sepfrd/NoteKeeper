@@ -4,6 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddHttpContextAccessor()
+    .AddHttpClient()
+    .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
+    .AddMemoryCacheEntryOptions()
     .AddSwagger()
     .AddApiControllers()
     .AddRepositories()

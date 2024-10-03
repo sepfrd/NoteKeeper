@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NoteKeeper.DataAccess;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NoteKeeper.DataAccess.Migrations
 {
     [DbContext(typeof(NoteKeeperDbContext))]
-    partial class NoteKeeperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241003213306_AddGoogleTokenEntity")]
+    partial class AddGoogleTokenEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,6 +49,7 @@ namespace NoteKeeper.DataAccess.Migrations
                         .HasColumnType("VarChar");
 
                     b.Property<string>("RefreshToken")
+                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("VarChar");
 
@@ -164,12 +168,12 @@ namespace NoteKeeper.DataAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedAt = new DateTime(2024, 10, 3, 21, 45, 13, 442, DateTimeKind.Utc).AddTicks(3930),
+                            CreatedAt = new DateTime(2024, 10, 3, 21, 33, 6, 434, DateTimeKind.Utc).AddTicks(4580),
                             Email = "sepfrd@outlook.com",
-                            PasswordHash = "$2a$12$F3pXY7aGvJITrIrVBn4J9eFvEdHArmfO1I/GJM8MUMU2F/qsZkY2W",
-                            UpdatedAt = new DateTime(2024, 10, 3, 21, 45, 13, 442, DateTimeKind.Utc).AddTicks(3930),
+                            PasswordHash = "$2a$12$267vhvBaDwf4MwD9GE/pP.uTk0iyBZd0FrNkFoi8fLIH/PvfmzJGG",
+                            UpdatedAt = new DateTime(2024, 10, 3, 21, 33, 6, 434, DateTimeKind.Utc).AddTicks(4580),
                             Username = "sepehr_frd",
-                            Uuid = new Guid("33e86bdd-2eeb-4915-a3d8-4b0d088025c6")
+                            Uuid = new Guid("260b2b26-061e-413d-92e4-baeb622dee48")
                         });
                 });
 

@@ -15,6 +15,8 @@ public class NoteKeeperDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
 
+    public DbSet<GoogleToken> GoogleTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -75,6 +77,42 @@ public class NoteKeeperDbContext : DbContext
         modelBuilder
             .Entity<User>()
             .Ignore(user => user.FullName);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .HasOne<User>(googleToken => googleToken.User)
+            .WithOne(user => user.GoogleToken)
+            .HasForeignKey<GoogleToken>(googleToken => googleToken.UserId);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .Property(googleToken => googleToken.AccessToken)
+            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasMaxLength(5000);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .Property(googleToken => googleToken.RefreshToken)
+            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasMaxLength(1000);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .Property(googleToken => googleToken.Scope)
+            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasMaxLength(1000);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .Property(googleToken => googleToken.TokenType)
+            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasMaxLength(100);
+
+        modelBuilder
+            .Entity<GoogleToken>()
+            .Property(googleToken => googleToken.IdToken)
+            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasMaxLength(5000);
 
         modelBuilder
             .Entity<User>()

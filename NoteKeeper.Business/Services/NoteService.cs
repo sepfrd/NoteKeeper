@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.DomainEntities;
@@ -23,7 +24,16 @@ public class NoteService : INoteService
 
     public async Task<ResponseDto<NoteDto?>> CreateAsync(CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(null, cancellationToken);
+
+        if (user is null)
+        {
+            return new ResponseDto<NoteDto?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
 
         var note = createNoteRequestDto.ToNoteDomainEntity();
 
@@ -50,14 +60,26 @@ public class NoteService : INoteService
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(cancellationToken);
-
-        var notes = await _noteRepository.GetAllAsync(
-            pageNumber,
-            pageSize,
-            note => note.UserId == user.Id,
-            null,
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.Notes),
             cancellationToken);
+
+        if (user is null)
+        {
+            return new ResponseDto<List<NoteDto>>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        var skipCount = (pageNumber - 1) * pageSize;
+
+        var notes = user
+            .Notes
+            .OrderByDescending(note => note.Id)
+            .Skip(skipCount)
+            .Take(pageSize).ToList();
 
         var response = notes.Select(note =>
             {
@@ -79,16 +101,20 @@ public class NoteService : INoteService
 
     public async Task<ResponseDto<NoteDto?>> GetByUuidAsync(Guid noteUuid, CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(cancellationToken);
-
-        var notes = await _noteRepository.GetAllAsync(
-            1,
-            1,
-            note => note.Uuid == noteUuid && note.UserId == user.Id,
-            null,
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.Notes),
             cancellationToken);
 
-        var note = notes.FirstOrDefault();
+        if (user is null)
+        {
+            return new ResponseDto<NoteDto?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        var note = user.Notes.FirstOrDefault(note => note.Uuid == noteUuid);
 
         if (note is null)
         {
@@ -117,9 +143,20 @@ public class NoteService : INoteService
 
     public async Task<ResponseDto<NoteDto?>> UpdateByUuidAsync(Guid noteUuid, UpdateNoteRequestDto updateNoteRequestDto, CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.Notes),
+            cancellationToken);
 
-        var note = await _noteRepository.GetByUuidAsync(noteUuid, null, cancellationToken);
+        if (user is null)
+        {
+            return new ResponseDto<NoteDto?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        var note = user.Notes.FirstOrDefault(note => note.Uuid == noteUuid);
 
         if (note is null)
         {
@@ -131,19 +168,6 @@ public class NoteService : INoteService
                 IsSuccess = false,
                 Message = message,
                 HttpStatusCode = HttpStatusCode.NotFound
-            };
-        }
-
-        if (note.UserId != user.Id)
-        {
-            var message = string.Format(CultureInfo.InvariantCulture, MessageConstants.ForbiddenActionMessage, "update", nameof(Note).ToLowerInvariant());
-
-            return new ResponseDto<NoteDto?>
-            {
-                Data = null,
-                IsSuccess = false,
-                Message = message,
-                HttpStatusCode = HttpStatusCode.Forbidden
             };
         }
 
@@ -170,9 +194,20 @@ public class NoteService : INoteService
 
     public async Task<ResponseDto<NoteDto?>> DeleteByUuidAsync(Guid noteUuid, CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.Notes),
+            cancellationToken);
 
-        var note = await _noteRepository.GetByUuidAsync(noteUuid, null, cancellationToken);
+        if (user is null)
+        {
+            return new ResponseDto<NoteDto?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        var note = user.Notes.FirstOrDefault(note => note.Uuid == noteUuid);
 
         if (note is null)
         {
@@ -184,19 +219,6 @@ public class NoteService : INoteService
                 IsSuccess = false,
                 Message = message,
                 HttpStatusCode = HttpStatusCode.NotFound
-            };
-        }
-
-        if (note.UserId != user.Id)
-        {
-            var message = string.Format(CultureInfo.InvariantCulture, MessageConstants.ForbiddenActionMessage, "delete", nameof(Note).ToLowerInvariant());
-
-            return new ResponseDto<NoteDto?>
-            {
-                Data = null,
-                IsSuccess = false,
-                Message = message,
-                HttpStatusCode = HttpStatusCode.Forbidden
             };
         }
 

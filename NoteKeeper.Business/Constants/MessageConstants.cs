@@ -18,10 +18,14 @@ public static class MessageConstants
     // ---------------------------- Not Found (404) Messages ----------------------------
     public const string EntityNotFoundByGuidMessage = "{0} with GUID of {1} not found.";
 
+    // ---------------------------- Internal Server Error (500) Messages ----------------------------
+    public const string UnsuccessfulGoogleTokenRetrievalMessage = "Something went wrong in our side while trying to get token(s) from Google. Please try again later.";
+
     // ---------------------------- OK (200) Messages ----------------------------
     public const string SuccessfulLoginMessage = "Successfully authenticated.";
     public const string SuccessfulUpdateMessage = "Successfully updated {0} entity.";
     public const string SuccessfulDeleteMessage = "Successfully deleted {0} entity.";
+    public const string SuccessfulGoogleTokenRetrievalMessage = "Successfully retrieved token(s) from Google.";
 
     // ---------------------------- Exception Messages ----------------------------
 

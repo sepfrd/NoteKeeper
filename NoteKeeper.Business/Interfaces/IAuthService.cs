@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore.Query;
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.DataAccess.Entities;
 
@@ -12,5 +13,9 @@ public interface IAuthService
 
     ClaimsPrincipal ConvertJwtStringToClaimsPrincipal(string jwtString, string authenticationType);
 
-    Task<User> GetSignedInUserAsync(CancellationToken cancellationToken = default);
+    Task<User?> GetSignedInUserAsync(Func<IQueryable<User>, IIncludableQueryable<User, object?>>? include = null, CancellationToken cancellationToken = default);
+
+    Task<ResponseDto<string?>> BuildGoogleOAuth2RequestUrlAsync(CancellationToken cancellationToken = default);
+
+    Task<ResponseDto<string?>> GoogleExchangeCodeForTokenAsync(GoogleExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto, CancellationToken cancellationToken = default);
 }
