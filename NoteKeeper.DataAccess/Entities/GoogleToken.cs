@@ -10,11 +10,13 @@ public class GoogleToken : DomainEntity
 
     public required string TokenType { get; set; }
 
-    public string? IdToken { get; set; }
+    public required string RefreshToken { get; set; }
 
-    public string? RefreshToken { get; set; }
+    public string? IdToken { get; set; }
 
     public long UserId { get; set; }
 
     public User? User { get; set; }
+
+    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
 }

@@ -115,6 +115,10 @@ public class NoteKeeperDbContext : DbContext
             .HasMaxLength(5000);
 
         modelBuilder
+            .Entity<GoogleToken>()
+            .Ignore(googleToken => googleToken.IsExpired);
+
+        modelBuilder
             .Entity<User>()
             .HasData([
                 new User

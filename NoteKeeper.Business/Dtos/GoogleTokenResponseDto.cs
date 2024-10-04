@@ -28,9 +28,9 @@ public record GoogleTokenResponseDto
     {
         AccessToken = AccessToken,
         ExpiresAt = DateTime.UtcNow.AddSeconds(ExpiresIn),
-        RefreshToken = RefreshToken,
+        RefreshToken = RefreshToken!,
         Scope = Scope,
         TokenType = TokenType,
-        IdToken = IdToken,
+        IdToken = IdToken
     };
 }

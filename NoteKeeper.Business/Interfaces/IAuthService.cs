@@ -15,7 +15,7 @@ public interface IAuthService
 
     Task<User?> GetSignedInUserAsync(Func<IQueryable<User>, IIncludableQueryable<User, object?>>? include = null, CancellationToken cancellationToken = default);
 
-    Task<ResponseDto<string?>> BuildGoogleOAuth2RequestUrlAsync(CancellationToken cancellationToken = default);
+    Task<ResponseDto<string?>> UseGoogleOAuth2Async(CancellationToken cancellationToken = default);
 
     Task<ResponseDto<string?>> GoogleExchangeCodeForTokenAsync(GoogleExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto, CancellationToken cancellationToken = default);
 }

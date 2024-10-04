@@ -11,11 +11,15 @@ public static class GoogleOAuth2Constants
     public const string RedirectUriParameterName = "redirect_uri";
     public const string ClientSecretParameterName = "client_secret";
     public const string GrantTypeParameterName = "grant_type";
+    public const string PromptParameterName = "prompt";
     public const string CodeParameterName = CodeResponseType;
+    public const string RefreshTokenParameterName = RefreshTokenJsonPropertyName;
 
+    public const string ConsentPrompt = "consent";
     public const string OfflineAccessType = "offline";
     public const string CodeResponseType = "code";
     public const string AuthorizationCodeGrantType = "authorization_code";
+    public const string RefreshTokenGrantType = "refresh_token";
 
     public const string AccessTokenJsonPropertyName = "access_token";
     public const string ExpiresInJsonPropertyName = "expires_in";

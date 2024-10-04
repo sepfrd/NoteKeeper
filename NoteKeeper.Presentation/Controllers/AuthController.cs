@@ -29,7 +29,7 @@ public class AuthController : ControllerBase
     {
         Response
             .Headers
-            .Add(new KeyValuePair<string, StringValues>("Allow", $"{HttpMethods.Post}"));
+            .Add(new KeyValuePair<string, StringValues>("Allow", $"{HttpMethods.Post},{HttpMethods.Get}"));
 
         return Ok();
     }
@@ -37,9 +37,9 @@ public class AuthController : ControllerBase
     [HttpGet]
     [Authorize]
     [Route("oauth2/google")]
-    public async Task<IActionResult> GetGoogleOAuth2RequestUrl(CancellationToken cancellationToken)
+    public async Task<IActionResult> UseGoogleOAuth2Async(CancellationToken cancellationToken)
     {
-        var result = await _authService.BuildGoogleOAuth2RequestUrlAsync(cancellationToken);
+        var result = await _authService.UseGoogleOAuth2Async(cancellationToken);
 
         return StatusCode((int)result.HttpStatusCode, result);
     }
