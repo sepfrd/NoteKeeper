@@ -22,7 +22,6 @@ public static class MessageConstants
     public const string SuccessfulLoginMessage = "Successfully authenticated.";
     public const string SuccessfulUpdateMessage = "Successfully updated {0} entity.";
     public const string SuccessfulDeleteMessage = "Successfully deleted {0} entity.";
-    public const string SuccessfulGoogleTokenRetrievalMessage = "Successfully retrieved token(s) from Google.";
     public const string GoogleOAuthSuccessMessage = "Google OAuth authentication was successful. You have successfully authorized access.";
 
     // ---------------------------- Exception Messages ----------------------------

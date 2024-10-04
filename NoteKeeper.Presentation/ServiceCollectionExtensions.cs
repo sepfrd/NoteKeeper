@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.Business.Services;
+using NoteKeeper.Business.Services.OAuth.V2;
 using NoteKeeper.DataAccess;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
@@ -70,7 +71,8 @@ public static class ServiceCollectionExtensions
         services
             .AddScoped<INoteService, NoteService>()
             .AddScoped<IUserService, UserService>()
-            .AddScoped<IAuthService, AuthService>();
+            .AddScoped<IAuthService, AuthService>()
+            .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>();
 
     public static IServiceCollection AddNoteKeeperDbContext(this IServiceCollection services, IConfiguration configuration) =>
         services
