@@ -107,7 +107,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         };
     }
 
-    public async Task<ResponseDto<string?>> GoogleExchangeCodeForTokenAsync(
+    public async Task<ResponseDto<string?>> GoogleExchangeCodeForTokensAsync(
         GoogleExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto,
         CancellationToken cancellationToken = default)
     {
@@ -180,6 +180,118 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             IsSuccess = true,
             Message = MessageConstants.GoogleOAuthSuccessMessage,
             HttpStatusCode = HttpStatusCode.OK
+        };
+    }
+
+    public async Task<ResponseDto<string?>> RevokeTokensAsync(CancellationToken cancellationToken)
+    {
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.GoogleToken),
+            cancellationToken);
+
+        if (user is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        if (user.GoogleToken is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.NoTokensFound,
+                HttpStatusCode = HttpStatusCode.BadRequest
+            };
+        }
+
+        var revocationTasks = new List<Task<ResponseDto<string?>>>
+        {
+            GoogleRevokeTokenAsync(user.GoogleToken.RefreshToken, cancellationToken)
+        };
+
+        if (!user.GoogleToken.IsExpired)
+        {
+            revocationTasks.Add(GoogleRevokeTokenAsync(user.GoogleToken.AccessToken, cancellationToken));
+        }
+
+        var revocationResults = await Task.WhenAll(revocationTasks);
+
+        if (revocationResults.Any(result => !result.IsSuccess))
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleTokenRevocationFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        _googleTokenRepository.Delete(user.GoogleToken);
+
+        user.MarkAsUpdated();
+
+        var updateCount = await _userRepository.SaveChangesAsync(cancellationToken);
+
+        if (updateCount > 1)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = true,
+                Message = MessageConstants.GoogleTokenRevocationSuccessMessage,
+                HttpStatusCode = HttpStatusCode.OK
+            };
+        }
+
+        return new ResponseDto<string?>
+        {
+            IsSuccess = false,
+            Message = MessageConstants.GoogleTokenRevocationFailureMessage,
+            HttpStatusCode = HttpStatusCode.InternalServerError
+        };
+    }
+
+    private async Task<ResponseDto<string?>> GoogleRevokeTokenAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var googleOAuthConfigurationDto = _configuration
+            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .Get<GoogleOAuth2ConfigurationDto>()!;
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        var requestUri = QueryHelpers.AddQueryString(
+            googleOAuthConfigurationDto.RevokeUri,
+            GoogleOAuth2Constants.TokenParameterName,
+            token);
+
+        httpClient.Timeout = TimeSpan.FromSeconds(5d);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
+
+        var response = await httpClient.SendAsync(request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = true,
+                Message = MessageConstants.GoogleTokenRevocationSuccessMessage,
+                HttpStatusCode = HttpStatusCode.OK
+            };
+        }
+
+        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var googleTokenRevocationResponseDto = JsonSerializer.Deserialize<GoogleTokenRevocationResponseDto>(responseString);
+
+        return new ResponseDto<string?>
+        {
+            IsSuccess = false,
+            Message = googleTokenRevocationResponseDto!.ErrorDescription,
+            HttpStatusCode = response.StatusCode
         };
     }
 

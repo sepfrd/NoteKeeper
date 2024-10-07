@@ -12,6 +12,7 @@ public static class GoogleOAuth2Constants
     public const string ClientSecretParameterName = "client_secret";
     public const string GrantTypeParameterName = "grant_type";
     public const string PromptParameterName = "prompt";
+    public const string TokenParameterName = "token";
     public const string CodeParameterName = CodeResponseType;
     public const string RefreshTokenParameterName = RefreshTokenJsonPropertyName;
 
@@ -27,4 +28,5 @@ public static class GoogleOAuth2Constants
     public const string ScopeJsonPropertyName = ScopeParameterName;
     public const string TokenTypeJsonPropertyName = "token_type";
     public const string IdTokenJsonPropertyName = "id_token";
+    public const string ErrorDescriptionJsonPropertyName = "error_description";
 }

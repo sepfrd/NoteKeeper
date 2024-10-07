@@ -6,5 +6,6 @@ public record GoogleOAuth2ConfigurationDto(
     string ProjectId,
     string AuthUri,
     string TokenUri,
+    string RevokeUri,
     string AuthProviderX509CertUrl,
     string ClientSecret);

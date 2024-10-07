@@ -15,9 +15,18 @@ public class OAuth2Controller : ControllerBase
     public OAuth2Controller(IGoogleOAuth2Service googleOAuth2Service) =>
         _googleOAuth2Service = googleOAuth2Service;
 
-    [HttpPost]
+    [HttpDelete]
     [Authorize]
-    [Route("google")]
+    [Route("google/tokens")]
+    public async Task<IActionResult> RevokeTokensAsync(CancellationToken cancellationToken)
+    {
+        var result = await _googleOAuth2Service.RevokeTokensAsync(cancellationToken);
+
+        return StatusCode((int)result.HttpStatusCode, result);
+    }
+
+    [HttpPost]
+    [Route("google/connect")]
     public async Task<IActionResult> UseGoogleOAuth2Async(CancellationToken cancellationToken)
     {
         var result = await _googleOAuth2Service.UseGoogleOAuth2Async(cancellationToken);
@@ -37,7 +46,7 @@ public class OAuth2Controller : ControllerBase
     {
         var exchangeRequestDto = new GoogleExchangeCodeForTokenRequestDto(state, code, scope, authuser, prompt);
 
-        var result = await _googleOAuth2Service.GoogleExchangeCodeForTokenAsync(exchangeRequestDto, cancellationToken);
+        var result = await _googleOAuth2Service.GoogleExchangeCodeForTokensAsync(exchangeRequestDto, cancellationToken);
 
         return StatusCode((int)result.HttpStatusCode, result);
     }
