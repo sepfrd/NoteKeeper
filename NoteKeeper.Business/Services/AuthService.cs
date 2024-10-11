@@ -122,7 +122,12 @@ public class AuthService : IAuthService
         Func<IQueryable<User>, IIncludableQueryable<User, object?>>? include = null,
         CancellationToken cancellationToken = default)
     {
-        var userUuid = _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtExtendedConstants.JwtUuidClaimType)!;
+        var userUuid = _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtExtendedConstants.JwtUuidClaimType);
+
+        if (userUuid is null)
+        {
+            return null;
+        }
 
         var user = await _userRepository.GetByUuidAsync(Guid.Parse(userUuid), include, cancellationToken);
 

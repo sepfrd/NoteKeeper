@@ -208,19 +208,12 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             };
         }
 
-        var revocationTasks = new List<Task<ResponseDto<string?>>>
-        {
-            GoogleRevokeTokenAsync(user.GoogleToken.RefreshToken, cancellationToken)
-        };
+        var revocationResult =
+            user.GoogleToken.IsExpired
+                ? await GoogleRevokeTokenAsync(user.GoogleToken.RefreshToken, cancellationToken)
+                : await GoogleRevokeTokenAsync(user.GoogleToken.AccessToken, cancellationToken);
 
-        if (!user.GoogleToken.IsExpired)
-        {
-            revocationTasks.Add(GoogleRevokeTokenAsync(user.GoogleToken.AccessToken, cancellationToken));
-        }
-
-        var revocationResults = await Task.WhenAll(revocationTasks);
-
-        if (revocationResults.Any(result => !result.IsSuccess))
+        if (!revocationResult.IsSuccess)
         {
             return new ResponseDto<string?>
             {

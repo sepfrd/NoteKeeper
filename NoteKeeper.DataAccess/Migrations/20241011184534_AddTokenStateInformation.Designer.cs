@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NoteKeeper.DataAccess;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NoteKeeper.DataAccess.Migrations
 {
     [DbContext(typeof(NoteKeeperDbContext))]
-    partial class NoteKeeperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241011184534_AddTokenStateInformation")]
+    partial class AddTokenStateInformation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,6 +57,9 @@ namespace NoteKeeper.DataAccess.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("VarChar");
+
+                    b.Property<long>("TokenStateId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("TokenType")
                         .IsRequired()
@@ -114,6 +120,76 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.ToTable("Notes");
                 });
 
+            modelBuilder.Entity("NoteKeeper.DataAccess.Entities.TokenStateInformation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("VarChar");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("VarChar");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Uuid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TokenStateInformation");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            CreatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1060),
+                            Description = "Neither access token nor refresh token has been revoked.",
+                            Title = "Active",
+                            UpdatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1060),
+                            Uuid = new Guid("a0cf4d5f-ed6b-4de2-bfcb-01e14ddbd825")
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            CreatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1110),
+                            Description = "Both tokens have been revoked.",
+                            Title = "Deleted",
+                            UpdatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1110),
+                            Uuid = new Guid("7e004b48-e8e8-498d-886f-4b12cb3e0134")
+                        },
+                        new
+                        {
+                            Id = 3L,
+                            CreatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1120),
+                            Description = "Access token has been revoked.",
+                            Title = "Access Token Revoked",
+                            UpdatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1120),
+                            Uuid = new Guid("0d448d91-52c6-49e1-853f-2618ae0dca7c")
+                        },
+                        new
+                        {
+                            Id = 4L,
+                            CreatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1120),
+                            Description = "Refresh token has been revoked.",
+                            Title = "Refresh Token Revoked",
+                            UpdatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1120),
+                            Uuid = new Guid("3e0d5148-919f-4029-a179-c2c592c88894")
+                        });
+                });
+
             modelBuilder.Entity("NoteKeeper.DataAccess.Entities.User", b =>
                 {
                     b.Property<long>("Id")
@@ -165,12 +241,12 @@ namespace NoteKeeper.DataAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedAt = new DateTime(2024, 10, 11, 19, 29, 51, 126, DateTimeKind.Utc).AddTicks(920),
+                            CreatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1220),
                             Email = "sepfrd@outlook.com",
-                            PasswordHash = "$2a$12$0/x6Lh4lFLtkny8JibDYDuzaKcs9Uuc4NQwEHcFCe.BcJpI1VjrHm",
-                            UpdatedAt = new DateTime(2024, 10, 11, 19, 29, 51, 126, DateTimeKind.Utc).AddTicks(920),
+                            PasswordHash = "$2a$12$SvvxrIjm9.UKcP/Qjl.c6efFh/RgIO5XRqYBP/QO01/AWsmFUlP4C",
+                            UpdatedAt = new DateTime(2024, 10, 11, 18, 45, 33, 577, DateTimeKind.Utc).AddTicks(1220),
                             Username = "sepehr_frd",
-                            Uuid = new Guid("63130182-286c-4af5-afc5-3c45a470c54b")
+                            Uuid = new Guid("f0a8a301-7075-44f9-8491-b036934d23f7")
                         });
                 });
 
