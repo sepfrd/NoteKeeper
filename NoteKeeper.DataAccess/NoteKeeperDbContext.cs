@@ -1,7 +1,7 @@
-using System.Data;
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.DataAccess.Entities;
+using NoteKeeper.DataAccess.EntityConfigurations;
 
 namespace NoteKeeper.DataAccess;
 
@@ -17,106 +17,16 @@ public class NoteKeeperDbContext : DbContext
 
     public DbSet<GoogleToken> GoogleTokens { get; set; }
 
+    public DbSet<NotionToken> NotionTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder
-            .Entity<Note>()
-            .HasOne<User>(note => note.User)
-            .WithMany(user => user.Notes)
-            .HasForeignKey(note => note.UserId);
-
-        modelBuilder
-            .Entity<Note>()
-            .Property(note => note.Title)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(200);
-
-        modelBuilder
-            .Entity<Note>()
-            .Property(note => note.Content)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(2000);
-
-        modelBuilder
-            .Entity<User>()
-            .HasIndex(user => user.Username)
-            .IsUnique();
-
-        modelBuilder
-            .Entity<User>()
-            .Property(user => user.Username)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(32);
-
-        modelBuilder
-            .Entity<User>()
-            .Property(user => user.FirstName)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(100);
-
-        modelBuilder
-            .Entity<User>()
-            .Property(user => user.LastName)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(100);
-
-        modelBuilder
-            .Entity<User>()
-            .Property(user => user.PasswordHash)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(500);
-
-        modelBuilder
-            .Entity<User>()
-            .Property(user => user.Email)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(320);
-
-        modelBuilder
-            .Entity<User>()
-            .Ignore(user => user.FullName);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .HasOne<User>(googleToken => googleToken.User)
-            .WithOne(user => user.GoogleToken)
-            .HasForeignKey<GoogleToken>(googleToken => googleToken.UserId);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Property(googleToken => googleToken.AccessToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(5000);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Property(googleToken => googleToken.RefreshToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(1000);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Property(googleToken => googleToken.Scope)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(1000);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Property(googleToken => googleToken.TokenType)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(100);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Property(googleToken => googleToken.IdToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
-            .HasMaxLength(5000);
-
-        modelBuilder
-            .Entity<GoogleToken>()
-            .Ignore(googleToken => googleToken.IsExpired);
+        modelBuilder.ApplyConfiguration(new GoogleTokenEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new NoteEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new NotionTokenEntityConfiguration());
+        modelBuilder.ApplyConfiguration(new UserEntityConfiguration());
 
         modelBuilder
             .Entity<User>()

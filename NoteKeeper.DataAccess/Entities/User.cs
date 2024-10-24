@@ -16,5 +16,7 @@ public class User : DomainEntity
 
     public GoogleToken? GoogleToken { get; set; }
 
+    public NotionToken? NotionToken { get; set; }
+
     public ICollection<Note> Notes { get; set; } = [];
 }

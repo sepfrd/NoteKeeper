@@ -1,22 +1,22 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Google;
 using NoteKeeper.Business.Interfaces;
 
-namespace NoteKeeper.Presentation.Controllers;
+namespace NoteKeeper.Presentation.Controllers.OAuth.v2;
 
 [ApiController]
-[Route("api/oauth/v2")]
-public class OAuth2Controller : ControllerBase
+[Route("api/oauth/v2/google")]
+public class GoogleOAuth2Controller : ControllerBase
 {
     private readonly IGoogleOAuth2Service _googleOAuth2Service;
 
-    public OAuth2Controller(IGoogleOAuth2Service googleOAuth2Service) =>
+    public GoogleOAuth2Controller(IGoogleOAuth2Service googleOAuth2Service) =>
         _googleOAuth2Service = googleOAuth2Service;
 
     [HttpPost]
-    [Route("google/connect")]
+    [Route("connect")]
     public async Task<IActionResult> UseGoogleOAuth2Async(CancellationToken cancellationToken)
     {
         var result = await _googleOAuth2Service.UseGoogleOAuth2Async(cancellationToken);
@@ -25,8 +25,8 @@ public class OAuth2Controller : ControllerBase
     }
 
     [HttpGet]
-    [Route("google/code")]
-    public async Task<IActionResult> ReceiveAuthorizationCode(
+    [Route("code")]
+    public async Task<IActionResult> ReceiveGoogleAuthorizationCode(
         [FromQuery] string state,
         [FromQuery] string code,
         [FromQuery] string scope,
@@ -44,7 +44,7 @@ public class OAuth2Controller : ControllerBase
     [HttpDelete]
     [Authorize]
     [Route("google/tokens")]
-    public async Task<IActionResult> RevokeTokensAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> RevokeGoogleTokensAsync(CancellationToken cancellationToken)
     {
         var result = await _googleOAuth2Service.RevokeTokensAsync(cancellationToken);
 
@@ -52,7 +52,7 @@ public class OAuth2Controller : ControllerBase
     }
 
     [HttpOptions]
-    public IActionResult OAuth2Options()
+    public IActionResult GoogleOAuth2Options()
     {
         Response
             .Headers

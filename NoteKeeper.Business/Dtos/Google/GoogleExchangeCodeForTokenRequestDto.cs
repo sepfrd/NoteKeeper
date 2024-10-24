@@ -1,4 +1,4 @@
-namespace NoteKeeper.Business.Dtos;
+namespace NoteKeeper.Business.Dtos.Google;
 
 public record GoogleExchangeCodeForTokenRequestDto(
     string State,

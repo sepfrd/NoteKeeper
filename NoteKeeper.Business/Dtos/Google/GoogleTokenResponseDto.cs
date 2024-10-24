@@ -2,26 +2,26 @@ using System.Text.Json.Serialization;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.DataAccess.Entities;
 
-namespace NoteKeeper.Business.Dtos;
+namespace NoteKeeper.Business.Dtos.Google;
 
 public record GoogleTokenResponseDto
 {
-    [JsonPropertyName(GoogleOAuth2Constants.AccessTokenJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.AccessTokenJsonPropertyName)]
     public required string AccessToken { get; init; }
 
-    [JsonPropertyName(GoogleOAuth2Constants.ExpiresInJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.ExpiresInJsonPropertyName)]
     public int ExpiresIn { get; init; }
 
-    [JsonPropertyName(GoogleOAuth2Constants.ScopeJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.ScopeJsonPropertyName)]
     public required string Scope { get; init; }
 
-    [JsonPropertyName(GoogleOAuth2Constants.TokenTypeJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.TokenTypeJsonPropertyName)]
     public required string TokenType { get; init; }
 
-    [JsonPropertyName(GoogleOAuth2Constants.RefreshTokenJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.RefreshTokenJsonPropertyName)]
     public string? RefreshToken { get; init; }
 
-    [JsonPropertyName(GoogleOAuth2Constants.IdTokenJsonPropertyName)]
+    [JsonPropertyName(OAuth2Constants.IdTokenJsonPropertyName)]
     public string? IdToken { get; init; }
 
     public GoogleToken ToGoogleTokenDomainEntity() => new()

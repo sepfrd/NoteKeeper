@@ -1,4 +1,5 @@
 using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Google;
 
 namespace NoteKeeper.Business.Interfaces;
 

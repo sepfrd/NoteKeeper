@@ -1,4 +1,4 @@
-namespace NoteKeeper.Business.Dtos;
+namespace NoteKeeper.Business.Dtos.Google;
 
 public record GoogleOAuth2ConfigurationDto(
     string RedirectUri,

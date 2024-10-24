@@ -65,14 +65,16 @@ public static class ServiceCollectionExtensions
         services
             .AddScoped<IRepositoryBase<User>, RepositoryBase<User>>()
             .AddScoped<IRepositoryBase<Note>, RepositoryBase<Note>>()
-            .AddScoped<IRepositoryBase<GoogleToken>, RepositoryBase<GoogleToken>>();
+            .AddScoped<IRepositoryBase<GoogleToken>, RepositoryBase<GoogleToken>>()
+            .AddScoped<IRepositoryBase<NotionToken>, RepositoryBase<NotionToken>>();
 
     public static IServiceCollection AddServices(this IServiceCollection services) =>
         services
             .AddScoped<INoteService, NoteService>()
             .AddScoped<IUserService, UserService>()
             .AddScoped<IAuthService, AuthService>()
-            .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>();
+            .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
+            .AddScoped<INotionOAuth2Service, NotionOAuth2Service>();
 
     public static IServiceCollection AddNoteKeeperDbContext(this IServiceCollection services, IConfiguration configuration) =>
         services

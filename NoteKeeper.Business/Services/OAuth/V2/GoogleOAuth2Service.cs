@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Google;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
@@ -21,6 +22,8 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private readonly IRepositoryBase<GoogleToken> _googleTokenRepository;
     private readonly IRepositoryBase<User> _userRepository;
     private readonly IAuthService _authService;
+    private readonly string SuccessMessage = string.Format(MessageConstants.OAuthSuccessMessage, "Google");
+    private readonly string FailureMessage = string.Format(MessageConstants.OAuthFailureMessage, "Google");
 
     public GoogleOAuth2Service(
         IConfiguration configuration,
@@ -68,7 +71,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         return new ResponseDto<string?>
         {
             IsSuccess = true,
-            Message = MessageConstants.GoogleOAuthSuccessMessage,
+            Message = SuccessMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }
@@ -87,14 +90,14 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string?>> queryParameters =
         [
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.ScopeParameterName, scopes),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.AccessTypeParameterName, GoogleOAuth2Constants.OfflineAccessType),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.ResponseTypeParameterName, GoogleOAuth2Constants.CodeResponseType),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.StateParameterName, state),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string?>(GoogleOAuth2Constants.PromptParameterName, GoogleOAuth2Constants.ConsentPrompt)
+            new KeyValuePair<string, string?>(OAuth2Constants.ScopeParameterName, scopes),
+            new KeyValuePair<string, string?>(OAuth2Constants.AccessTypeParameterName, OAuth2Constants.OfflineAccessType),
+            new KeyValuePair<string, string?>(OAuth2Constants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
+            new KeyValuePair<string, string?>(OAuth2Constants.ResponseTypeParameterName, OAuth2Constants.CodeResponseType),
+            new KeyValuePair<string, string?>(OAuth2Constants.StateParameterName, state),
+            new KeyValuePair<string, string?>(OAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new KeyValuePair<string, string?>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string?>(OAuth2Constants.PromptParameterName, OAuth2Constants.ConsentPrompt)
         ];
 
         var finalUrl = QueryHelpers.AddQueryString(googleOAuthConfigurationDto.AuthUri, queryParameters);
@@ -123,11 +126,11 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.CodeParameterName, exchangeCodeForTokenRequestDto.Code),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.GrantTypeParameterName, GoogleOAuth2Constants.AuthorizationCodeGrantType)
+            new KeyValuePair<string, string>(OAuth2Constants.CodeParameterName, exchangeCodeForTokenRequestDto.Code),
+            new KeyValuePair<string, string>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string>(OAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new KeyValuePair<string, string>(OAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new KeyValuePair<string, string>(OAuth2Constants.GrantTypeParameterName, OAuth2Constants.AuthorizationCodeGrantType)
         ];
 
         var content = new FormUrlEncodedContent(nameValueCollection);
@@ -141,7 +144,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = MessageConstants.GoogleOAuthFailureMessage,
+                Message = FailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -155,7 +158,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = MessageConstants.GoogleOAuthFailureMessage,
+                Message = FailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -170,7 +173,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = MessageConstants.GoogleOAuthFailureMessage,
+                Message = FailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -178,7 +181,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         return new ResponseDto<string?>
         {
             IsSuccess = true,
-            Message = MessageConstants.GoogleOAuthSuccessMessage,
+            Message = SuccessMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }
@@ -257,7 +260,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         var requestUri = QueryHelpers.AddQueryString(
             googleOAuthConfigurationDto.RevokeUri,
-            GoogleOAuth2Constants.TokenParameterName,
+            OAuth2Constants.TokenParameterName,
             token);
 
         httpClient.Timeout = TimeSpan.FromSeconds(5d);
@@ -302,10 +305,10 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.GrantTypeParameterName, GoogleOAuth2Constants.RefreshTokenGrantType),
-            new KeyValuePair<string, string>(GoogleOAuth2Constants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
+            new KeyValuePair<string, string>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string>(OAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new KeyValuePair<string, string>(OAuth2Constants.GrantTypeParameterName, OAuth2Constants.RefreshTokenGrantType),
+            new KeyValuePair<string, string>(OAuth2Constants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
         ];
 
         var content = new FormUrlEncodedContent(nameValueCollection);
@@ -319,7 +322,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = MessageConstants.GoogleOAuthFailureMessage,
+                Message = FailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -333,7 +336,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = MessageConstants.GoogleOAuthFailureMessage,
+                Message = FailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -354,7 +357,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = true,
-                Message = MessageConstants.GoogleOAuthSuccessMessage,
+                Message = SuccessMessage,
                 HttpStatusCode = HttpStatusCode.OK
             };
         }
@@ -362,7 +365,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         return new ResponseDto<string?>
         {
             IsSuccess = false,
-            Message = MessageConstants.GoogleOAuthFailureMessage,
+            Message = FailureMessage,
             HttpStatusCode = HttpStatusCode.InternalServerError
         };
     }
