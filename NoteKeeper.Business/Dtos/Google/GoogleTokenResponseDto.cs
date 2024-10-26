@@ -6,22 +6,22 @@ namespace NoteKeeper.Business.Dtos.Google;
 
 public record GoogleTokenResponseDto
 {
-    [JsonPropertyName(OAuth2Constants.AccessTokenJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.AccessTokenJsonPropertyName)]
     public required string AccessToken { get; init; }
 
-    [JsonPropertyName(OAuth2Constants.ExpiresInJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.ExpiresInJsonPropertyName)]
     public int ExpiresIn { get; init; }
 
-    [JsonPropertyName(OAuth2Constants.ScopeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.ScopeJsonPropertyName)]
     public required string Scope { get; init; }
 
-    [JsonPropertyName(OAuth2Constants.TokenTypeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.TokenTypeJsonPropertyName)]
     public required string TokenType { get; init; }
 
-    [JsonPropertyName(OAuth2Constants.RefreshTokenJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.RefreshTokenJsonPropertyName)]
     public string? RefreshToken { get; init; }
 
-    [JsonPropertyName(OAuth2Constants.IdTokenJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.IdTokenJsonPropertyName)]
     public string? IdToken { get; init; }
 
     public GoogleToken ToGoogleTokenDomainEntity() => new()

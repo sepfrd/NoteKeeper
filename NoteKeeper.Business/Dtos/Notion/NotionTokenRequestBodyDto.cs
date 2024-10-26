@@ -5,12 +5,12 @@ namespace NoteKeeper.Business.Dtos.Notion;
 
 public record NotionTokenRequestBodyDto
 {
-    [JsonPropertyName(OAuth2Constants.GrantTypeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.GrantTypeJsonPropertyName)]
     public required string GrantType { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.CodeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.CodeJsonPropertyName)]
     public required string Code { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.RedirectUriJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.RedirectUriJsonPropertyName)]
     public required string RedirectUri { get; set; }
-};
+}

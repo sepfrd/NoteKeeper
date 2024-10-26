@@ -6,31 +6,31 @@ namespace NoteKeeper.Business.Dtos.Notion;
 
 public record NotionTokenResponseDto
 {
-    [JsonPropertyName(OAuth2Constants.AccessTokenJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.AccessTokenJsonPropertyName)]
     public required string AccessToken { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.TokenTypeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.TokenTypeJsonPropertyName)]
     public required string TokenType { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionBotIdJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionBotIdJsonPropertyName)]
     public string? BotId { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionWorkspaceNameJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionWorkspaceNameJsonPropertyName)]
     public string? WorkspaceName { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionWorkspaceIconJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionWorkspaceIconJsonPropertyName)]
     public string? WorkspaceIcon { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionWorkspaceIdJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionWorkspaceIdJsonPropertyName)]
     public string? WorkspaceId { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionOwnerJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionOwnerJsonPropertyName)]
     public NotionOwnerDto? Owner { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionDuplicatedTemplateIdJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionDuplicatedTemplateIdJsonPropertyName)]
     public string? DuplicatedTemplateId { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionRequestIdJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionRequestIdJsonPropertyName)]
     public string? RequestId { get; set; }
 
     public NotionToken ToNotionTokenDomainEntity() => new()

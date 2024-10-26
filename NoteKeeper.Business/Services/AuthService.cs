@@ -13,6 +13,7 @@ using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.Business.Utilities;
 using NoteKeeper.DataAccess.Entities;
+using NoteKeeper.DataAccess.Enums;
 using NoteKeeper.DataAccess.Interfaces;
 using Org.BouncyCastle.Crypto.Signers;
 
@@ -23,10 +24,10 @@ public class AuthService : IAuthService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IConfiguration _configuration;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
-    private readonly IRepositoryBase<User> _userRepository;
+    private readonly IUserRepository _userRepository;
 
     public AuthService(
-        IRepositoryBase<User> userRepository,
+        IUserRepository userRepository,
         IHttpContextAccessor httpContextAccessor,
         IConfiguration configuration,
         JsonSerializerOptions jsonSerializerOptions)
@@ -49,9 +50,31 @@ public class AuthService : IAuthService
             };
         }
 
-        var user = await ValidateAndGetUserByCredentialsAsync(loginDto, cancellationToken);
+        var user = await GetByUsernameOrEmailAsync(loginDto.UsernameOrEmail, cancellationToken);
 
-        if (user is null)
+        if (user is null || user.RegistrationType != RegistrationType.Direct)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.InvalidCredentialsMessage,
+                HttpStatusCode = HttpStatusCode.BadRequest
+            };
+        }
+
+        if (!RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.InvalidCredentialsMessage,
+                HttpStatusCode = HttpStatusCode.BadRequest
+            };
+        }
+
+        var isPasswordValid = CryptographyHelper.ValidatePassword(loginDto.Password, user.PasswordHash!);
+
+        if (!isPasswordValid)
         {
             return new ResponseDto<string?>
             {
@@ -134,7 +157,7 @@ public class AuthService : IAuthService
         return user;
     }
 
-    private string GenerateEd25519Jwt(User user)
+    public string GenerateEd25519Jwt(User user)
     {
         var jwtConfigurationDto = _configuration.GetSection(ConfigurationConstants.Ed25519JwtConfigurationSectionKey).Get<JwtConfigurationDto>()!;
 
@@ -192,58 +215,22 @@ public class AuthService : IAuthService
         return jwt;
     }
 
-    private async Task<User?> ValidateAndGetUserByCredentialsAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
-    {
-        if (!RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
-        {
-            return null;
-        }
-
-        User? user;
-
-        if (RegexValidator.UsernameRegex().IsMatch(loginDto.UsernameOrEmail))
-        {
-            user = await GetByUsernameAsync(loginDto.UsernameOrEmail, cancellationToken);
-        }
-        else
-        {
-            user = await GetByEmailAsync(loginDto.UsernameOrEmail, cancellationToken);
-        }
-
-        if (user is null)
-        {
-            return null;
-        }
-
-        var isPasswordValid = CryptographyHelper.ValidatePassword(loginDto.Password, user.PasswordHash);
-
-        return !isPasswordValid ? null : user;
-    }
-
     private bool IsSignedIn() =>
         _httpContextAccessor.HttpContext!.User.Identity is not null && _httpContextAccessor.HttpContext!.User.Identity.IsAuthenticated;
 
-    private async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
+    private async Task<User?> GetByUsernameOrEmailAsync(string usernameOrEmail, CancellationToken cancellationToken = default)
     {
-        var result = await _userRepository.GetAllAsync(
-            1,
-            1,
-            user => user.Username == username,
-            null,
-            cancellationToken);
+        User? user;
 
-        return result.SingleOrDefault();
-    }
+        if (RegexValidator.UsernameRegex().IsMatch(usernameOrEmail))
+        {
+            user = await _userRepository.GetByUsernameAsync(usernameOrEmail, null, cancellationToken);
+        }
+        else
+        {
+            user = await _userRepository.GetByEmailAsync(usernameOrEmail, null, cancellationToken);
+        }
 
-    private async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
-    {
-        var result = await _userRepository.GetAllAsync(
-            1,
-            1,
-            user => user.Email == email,
-            null,
-            cancellationToken);
-
-        return result.SingleOrDefault();
+        return user;
     }
 }

@@ -5,6 +5,6 @@ namespace NoteKeeper.Business.Dtos.Google;
 
 public record GoogleTokenRevocationResponseDto
 {
-    [JsonPropertyName(OAuth2Constants.ErrorDescriptionJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.ErrorDescriptionJsonPropertyName)]
     public string? ErrorDescription { get; init; }
 }

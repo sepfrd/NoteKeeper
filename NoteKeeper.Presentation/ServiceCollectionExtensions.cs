@@ -63,7 +63,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddRepositories(this IServiceCollection services) =>
         services
-            .AddScoped<IRepositoryBase<User>, RepositoryBase<User>>()
+            .AddScoped<IUserRepository, UserRepository>()
             .AddScoped<IRepositoryBase<Note>, RepositoryBase<Note>>()
             .AddScoped<IRepositoryBase<GoogleToken>, RepositoryBase<GoogleToken>>()
             .AddScoped<IRepositoryBase<NotionToken>, RepositoryBase<NotionToken>>();

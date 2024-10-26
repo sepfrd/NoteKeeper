@@ -1,6 +1,6 @@
 namespace NoteKeeper.Business.Constants;
 
-public static class OAuth2Constants
+public static class CustomOAuthConstants
 {
     public const string ClientIdParameterName = "client_id";
     public const string AccessTypeParameterName = "access_type";
@@ -24,11 +24,15 @@ public static class OAuth2Constants
     public const string AuthorizationCodeGrantType = "authorization_code";
     public const string RefreshTokenGrantType = "refresh_token";
 
+    public const string GoogleSignupPendingUsername = "google_signup_pending";
+
     public const string AccessTokenJsonPropertyName = "access_token";
     public const string ExpiresInJsonPropertyName = "expires_in";
     public const string RefreshTokenJsonPropertyName = "refresh_token";
     public const string TokenTypeJsonPropertyName = "token_type";
     public const string IdTokenJsonPropertyName = "id_token";
+    public const string EmailVerifiedJsonPropertyName = "email_verified";
+    public const string PictureJsonPropertyName = "picture";
     public const string ErrorDescriptionJsonPropertyName = "error_description";
     public const string NotionEmailJsonPropertyName = "email";
     public const string NotionTypeJsonPropertyName = "type";

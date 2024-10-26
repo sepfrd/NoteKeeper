@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NoteKeeper.DataAccess.Migrations
 {
     [DbContext(typeof(NoteKeeperDbContext))]
-    [Migration("20241024225235_AddNotionToken")]
-    partial class AddNotionToken
+    [Migration("20241026202913_AddRegistrationType")]
+    partial class AddRegistrationType
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -212,9 +212,11 @@ namespace NoteKeeper.DataAccess.Migrations
                         .HasColumnType("VarChar");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("VarChar");
+
+                    b.Property<int>("RegistrationType")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -238,12 +240,13 @@ namespace NoteKeeper.DataAccess.Migrations
                         new
                         {
                             Id = 1L,
-                            CreatedAt = new DateTime(2024, 10, 24, 22, 52, 35, 89, DateTimeKind.Utc).AddTicks(9120),
+                            CreatedAt = new DateTime(2024, 10, 26, 20, 29, 13, 228, DateTimeKind.Utc).AddTicks(7540),
                             Email = "sepfrd@outlook.com",
-                            PasswordHash = "$2a$12$oxXEzD67D4jHjPIU7qj7QusvEgDsXYqYSCsSHGMEBRXM4uskMV.5W",
-                            UpdatedAt = new DateTime(2024, 10, 24, 22, 52, 35, 89, DateTimeKind.Utc).AddTicks(9120),
+                            PasswordHash = "$2a$12$qUVh4Gt2tH5kbtPjrfcR.efYZz48rXwUA7TZRCqaxfJW8s2d39Qp.",
+                            RegistrationType = 0,
+                            UpdatedAt = new DateTime(2024, 10, 26, 20, 29, 13, 228, DateTimeKind.Utc).AddTicks(7540),
                             Username = "sepehr_frd",
-                            Uuid = new Guid("ed39a117-77d4-494c-8aaa-44e0739468d9")
+                            Uuid = new Guid("0f29dba4-9bfd-4495-a282-be7075902626")
                         });
                 });
 

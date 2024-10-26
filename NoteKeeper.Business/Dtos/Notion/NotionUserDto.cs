@@ -5,21 +5,21 @@ namespace NoteKeeper.Business.Dtos.Notion;
 
 public record NotionUserDto
 {
-    [JsonPropertyName(OAuth2Constants.NotionObjectJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionObjectJsonPropertyName)]
     public string? Object { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionIdJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionIdJsonPropertyName)]
     public string? Id { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionNameJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionNameJsonPropertyName)]
     public string? Name { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionAvatarUrlJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionAvatarUrlJsonPropertyName)]
     public string? AvatarUrl { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionTypeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionTypeJsonPropertyName)]
     public string? Type { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionPersonJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionPersonJsonPropertyName)]
     public NotionPersonDto? Person { get; set; }
 }

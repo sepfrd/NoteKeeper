@@ -17,15 +17,22 @@ public static class MessageConstants
     public const string EntityNotFoundByGuidMessage = "{0} with GUID of {1} not found.";
 
     // ---------------------------- Internal Server Error (500) Messages ----------------------------
-    public const string OAuthFailureMessage = "{0} OAuth authentication failed. Please try again or contact support.";
+    public const string OAuthFailureMessageTemplate = "{0} OAuth authentication failed. Please try again or contact support.";
     public const string GoogleTokenRevocationFailureMessage = "Google token(s) revocation failed. Please try again or contact support.";
+    public const string GoogleSigninFailureMessage = "Google Sign-in failed. Please try again or contact support.";
+    public const string GoogleSignupFailureMessage = "Google Sign-up failed. Please try again or contact support.";
+    public const string GoogleOidcFailureMessage = "Google OpenID Connect request failed. Please try again or contact support.";
+    public const string GoogleRefreshTokenFailureMessage = "Google refresh token request failed. Please try again or contact support.";
 
     // ---------------------------- OK (200) Messages ----------------------------
     public const string SuccessfulLoginMessage = "Successfully authenticated.";
     public const string SuccessfulUpdateMessage = "Successfully updated {0} entity.";
     public const string SuccessfulDeleteMessage = "Successfully deleted {0} entity.";
     public const string GoogleTokenRevocationSuccessMessage = "Google token(s) revocation was successful. You have successfully revoked access.";
-    public const string OAuthSuccessMessage = "{0} OAuth authentication was successful. You have successfully authorized access.";
+    public const string GoogleSigninSuccessMessageTemplate = "Google Sign-in was successful. Welcome back {0}";
+    public const string GoogleSignupSuccessMessageTemplate = "Google Sign-up was successful. Welcome {0}";
+    public const string GoogleRefreshTokenSuccessMessage = "Google refresh token request was successful.";
+    public const string OAuthSuccessMessageTemplate = "{0} OAuth authentication was successful. You have successfully authorized access.";
 
     // ---------------------------- Exception Messages ----------------------------
 

@@ -14,4 +14,6 @@ public interface IAuthService
     ClaimsPrincipal ConvertJwtStringToClaimsPrincipal(string jwtString, string authenticationType);
 
     Task<User?> GetSignedInUserAsync(Func<IQueryable<User>, IIncludableQueryable<User, object?>>? include = null, CancellationToken cancellationToken = default);
+
+    string GenerateEd25519Jwt(User user);
 }

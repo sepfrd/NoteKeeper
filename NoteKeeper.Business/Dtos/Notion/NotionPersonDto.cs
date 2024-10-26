@@ -5,6 +5,6 @@ namespace NoteKeeper.Business.Dtos.Notion;
 
 public record NotionPersonDto
 {
-    [JsonPropertyName(OAuth2Constants.NotionEmailJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionEmailJsonPropertyName)]
     public string? Email { get; set; }
-};
+}

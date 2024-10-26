@@ -1,3 +1,5 @@
+using NoteKeeper.DataAccess.Enums;
+
 namespace NoteKeeper.DataAccess.Entities;
 
 public class User : DomainEntity
@@ -6,11 +8,13 @@ public class User : DomainEntity
 
     public required string Email { get; set; }
 
-    public required string PasswordHash { get; set; }
+    public string? PasswordHash { get; set; }
 
     public string? FirstName { get; set; }
 
     public string? LastName { get; set; }
+
+    public RegistrationType RegistrationType { get; set; } = RegistrationType.Direct;
 
     public string FullName => FirstName + ' ' + LastName;
 

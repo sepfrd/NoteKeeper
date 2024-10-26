@@ -23,10 +23,10 @@ public class NotionOAuth2Service : INotionOAuth2Service
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
     private readonly IRepositoryBase<NotionToken> _notionTokenRepository;
-    private readonly IRepositoryBase<User> _userRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
-    private readonly string SuccessMessage = string.Format(MessageConstants.OAuthSuccessMessage, "Notion");
-    private readonly string FailureMessage = string.Format(MessageConstants.OAuthFailureMessage, "Notion");
+    private readonly string SuccessMessage = string.Format(MessageConstants.OAuthSuccessMessageTemplate, "Notion");
+    private readonly string FailureMessage = string.Format(MessageConstants.OAuthFailureMessageTemplate, "Notion");
 
     public NotionOAuth2Service(
         IConfiguration configuration,
@@ -34,7 +34,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
         IRepositoryBase<NotionToken> notionTokenRepository,
-        IRepositoryBase<User> userRepository,
+        IUserRepository userRepository,
         IAuthService authService)
     {
         _configuration = configuration;
@@ -86,11 +86,11 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         IEnumerable<KeyValuePair<string, string?>> queryParameters =
         [
-            new KeyValuePair<string, string?>(OAuth2Constants.ClientIdParameterName, notionOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string?>(OAuth2Constants.ResponseTypeParameterName, OAuth2Constants.CodeResponseType),
-            new KeyValuePair<string, string?>(OAuth2Constants.NotionOwnerParameterName, OAuth2Constants.NotionUserOwnerType),
-            new KeyValuePair<string, string?>(OAuth2Constants.RedirectUriParameterName, notionOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string?>(OAuth2Constants.StateParameterName, state)
+            new KeyValuePair<string, string?>(CustomOAuthConstants.ClientIdParameterName, notionOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.NotionOwnerParameterName, CustomOAuthConstants.NotionUserOwnerType),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.RedirectUriParameterName, notionOAuthConfigurationDto.RedirectUri),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.StateParameterName, state)
         ];
 
         var finalUrl = QueryHelpers.AddQueryString(notionOAuthConfigurationDto.AuthUri, queryParameters);
@@ -120,7 +120,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         var requestBody = new NotionTokenRequestBodyDto
         {
-            GrantType = OAuth2Constants.AuthorizationCodeGrantType,
+            GrantType = CustomOAuthConstants.AuthorizationCodeGrantType,
             Code = exchangeCodeForTokenRequestDto.Code,
             RedirectUri = notionOAuthConfigurationDto.RedirectUri
         };

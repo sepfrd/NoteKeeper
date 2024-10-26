@@ -1,9 +1,11 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.Google;
@@ -20,10 +22,8 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
     private readonly IRepositoryBase<GoogleToken> _googleTokenRepository;
-    private readonly IRepositoryBase<User> _userRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
-    private readonly string SuccessMessage = string.Format(MessageConstants.OAuthSuccessMessage, "Google");
-    private readonly string FailureMessage = string.Format(MessageConstants.OAuthFailureMessage, "Google");
 
     public GoogleOAuth2Service(
         IConfiguration configuration,
@@ -31,7 +31,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
         IRepositoryBase<GoogleToken> googleTokenRepository,
-        IRepositoryBase<User> userRepository,
+        IUserRepository userRepository,
         IAuthService authService)
     {
         _configuration = configuration;
@@ -43,145 +43,158 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         _authService = authService;
     }
 
-    public async Task<ResponseDto<string?>> UseGoogleOAuth2Async(CancellationToken cancellationToken = default)
+    public async Task<ResponseDto<string?>> AuthenticateWithGoogleAsync(CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(
-            users => users.Include(user => user.GoogleToken),
-            cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(null, cancellationToken);
 
-        if (user is null)
+        if (user is not null)
         {
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                HttpStatusCode = HttpStatusCode.Unauthorized
+                Message = MessageConstants.AlreadySignedInMessage,
+                HttpStatusCode = HttpStatusCode.Forbidden
             };
         }
 
-        if (user.GoogleToken is null)
-        {
-            return GoogleGenerateOAuth2RequestUrl(user);
-        }
-
-        if (user.GoogleToken.IsExpired)
-        {
-            return await GoogleRefreshAccessTokenAsync(user, cancellationToken);
-        }
-
-        return new ResponseDto<string?>
-        {
-            IsSuccess = true,
-            Message = SuccessMessage,
-            HttpStatusCode = HttpStatusCode.OK
-        };
+        return GoogleGenerateOAuth2RequestUrl();
     }
 
-    private ResponseDto<string?> GoogleGenerateOAuth2RequestUrl(User user)
+    public async Task<ResponseDto<string?>> CompleteGoogleAuthenticationAsync(CompleteGoogleAuthenticationAsyncRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
+        var username = RetrieveUsernameFromMemoryCache(requestDto.State);
 
-        var state = Guid.NewGuid().ToString();
-
-        StoreStateAndUserIdInMemoryCache(state, user.Id);
-
-        var scopes = string.Join(' ', OAuthScopeConstants.EmailScope, OAuthScopeConstants.ProfileScope);
-
-        IEnumerable<KeyValuePair<string, string?>> queryParameters =
-        [
-            new KeyValuePair<string, string?>(OAuth2Constants.ScopeParameterName, scopes),
-            new KeyValuePair<string, string?>(OAuth2Constants.AccessTypeParameterName, OAuth2Constants.OfflineAccessType),
-            new KeyValuePair<string, string?>(OAuth2Constants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
-            new KeyValuePair<string, string?>(OAuth2Constants.ResponseTypeParameterName, OAuth2Constants.CodeResponseType),
-            new KeyValuePair<string, string?>(OAuth2Constants.StateParameterName, state),
-            new KeyValuePair<string, string?>(OAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string?>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string?>(OAuth2Constants.PromptParameterName, OAuth2Constants.ConsentPrompt)
-        ];
-
-        var finalUrl = QueryHelpers.AddQueryString(googleOAuthConfigurationDto.AuthUri, queryParameters);
-
-        return new ResponseDto<string?>
-        {
-            Data = finalUrl,
-            IsSuccess = true,
-            HttpStatusCode = HttpStatusCode.OK
-        };
-    }
-
-    public async Task<ResponseDto<string?>> GoogleExchangeCodeForTokensAsync(
-        GoogleExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto,
-        CancellationToken cancellationToken = default)
-    {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
-
-        var httpClient = _httpClientFactory.CreateClient();
-
-        httpClient.Timeout = TimeSpan.FromSeconds(5d);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
-
-        IEnumerable<KeyValuePair<string, string>> nameValueCollection =
-        [
-            new KeyValuePair<string, string>(OAuth2Constants.CodeParameterName, exchangeCodeForTokenRequestDto.Code),
-            new KeyValuePair<string, string>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(OAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(OAuth2Constants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string>(OAuth2Constants.GrantTypeParameterName, OAuth2Constants.AuthorizationCodeGrantType)
-        ];
-
-        var content = new FormUrlEncodedContent(nameValueCollection);
-
-        request.Content = content;
-
-        var response = await httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
+        if (username != CustomOAuthConstants.GoogleSignupPendingUsername)
         {
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
-                HttpStatusCode = HttpStatusCode.InternalServerError
+                HttpStatusCode = HttpStatusCode.BadRequest
             };
         }
 
-        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        var googleTokenResponseDto = JsonSerializer.Deserialize<GoogleTokenResponseDto>(responseString);
+        var googleTokenResponseDto = await GoogleExchangeAuthorizationCodeForTokensAsync(requestDto.Code, cancellationToken);
 
         if (googleTokenResponseDto is null)
         {
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
+                Message = MessageConstants.GoogleOidcFailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
 
-        var isGoogleTokenStored = await StoreGoogleTokensAsync(
-            googleTokenResponseDto,
-            exchangeCodeForTokenRequestDto.State,
-            cancellationToken);
-
-        if (!isGoogleTokenStored)
+        if (googleTokenResponseDto.IdToken is null)
         {
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
+                Message = MessageConstants.GoogleOidcFailureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
 
+        var tokenSections = googleTokenResponseDto.IdToken.Split('.');
+
+        if (tokenSections.Length != 3)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleOidcFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        var idTokenPayloadString = tokenSections[1];
+
+        var decodedPayloadBytes = Base64UrlEncoder.DecodeBytes(idTokenPayloadString);
+
+        var decodedPayloadString = Encoding.UTF8.GetString(decodedPayloadBytes);
+
+        var idTokenDto = JsonSerializer.Deserialize<GoogleIdTokenPayloadDto>(decodedPayloadString);
+
+        if (idTokenDto is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleOidcFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        var user = await _userRepository.GetByUsernameAsync(
+            idTokenDto.Subject,
+            users => users.Include(user => user.GoogleToken),
+            cancellationToken);
+
+        if (user is null) // Then this is a signup request
+        {
+            user = idTokenDto.ToUserDomainEntity();
+
+            user.GoogleToken = googleTokenResponseDto.ToGoogleTokenDomainEntity();
+
+            var createdUser = await _userRepository.CreateAsync(user, cancellationToken);
+
+            var insertCount = await _userRepository.SaveChangesAsync(cancellationToken);
+
+            if (insertCount < 2)
+            {
+                return new ResponseDto<string?>
+                {
+                    IsSuccess = false,
+                    Message = MessageConstants.GoogleSignupFailureMessage,
+                    HttpStatusCode = HttpStatusCode.InternalServerError
+                };
+            }
+
+            var newUserJwt = _authService.GenerateEd25519Jwt(createdUser);
+
+            var signupMessage = string.Format(MessageConstants.GoogleSignupSuccessMessageTemplate, user.FullName);
+
+            return new ResponseDto<string?>
+            {
+                Data = newUserJwt,
+                IsSuccess = true,
+                Message = signupMessage,
+                HttpStatusCode = HttpStatusCode.Created
+            };
+        }
+
+        // This is a signin request
+
+        user.GoogleToken!.AccessToken = googleTokenResponseDto.AccessToken;
+        user.GoogleToken.RefreshToken = googleTokenResponseDto.RefreshToken ?? user.GoogleToken.RefreshToken;
+        user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
+        user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
+        user.GoogleToken.Scope = googleTokenResponseDto.Scope;
+        user.GoogleToken.MarkAsUpdated();
+        user.MarkAsUpdated();
+
+        var updateCount = await _userRepository.SaveChangesAsync(cancellationToken);
+
+        if (updateCount < 2)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleSigninFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        var existingUserJwt = _authService.GenerateEd25519Jwt(user);
+
+        var signinMessage = string.Format(MessageConstants.GoogleSigninSuccessMessageTemplate, user.FullName);
+
         return new ResponseDto<string?>
         {
+            Data = existingUserJwt,
             IsSuccess = true,
-            Message = SuccessMessage,
+            Message = signinMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }
@@ -250,6 +263,171 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         };
     }
 
+    public async Task<ResponseDto<string?>> GoogleRefreshAccessTokenAsync(CancellationToken cancellationToken = default)
+    {
+        var user = await _authService.GetSignedInUserAsync(
+            users => users.Include(user => user.GoogleToken),
+            cancellationToken);
+
+        if (user is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
+        }
+
+        var googleOAuthConfigurationDto = _configuration
+            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .Get<GoogleOAuth2ConfigurationDto>()!;
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        httpClient.Timeout = TimeSpan.FromSeconds(5d);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
+
+        IEnumerable<KeyValuePair<string, string>> nameValueCollection =
+        [
+            new KeyValuePair<string, string>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string>(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new KeyValuePair<string, string>(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.RefreshTokenGrantType),
+            new KeyValuePair<string, string>(CustomOAuthConstants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
+        ];
+
+        var content = new FormUrlEncodedContent(nameValueCollection);
+
+        request.Content = content;
+
+        var response = await httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleRefreshTokenFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var googleTokenResponseDto = JsonSerializer.Deserialize<GoogleTokenResponseDto>(responseString);
+
+        if (googleTokenResponseDto is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.GoogleRefreshTokenFailureMessage,
+                HttpStatusCode = HttpStatusCode.InternalServerError
+            };
+        }
+
+        user.GoogleToken.Scope = googleTokenResponseDto.Scope;
+        user.GoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
+        user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
+        user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
+        user.GoogleToken.MarkAsUpdated();
+
+        user.MarkAsUpdated();
+
+        var updateCount = await _userRepository.SaveChangesAsync(cancellationToken);
+
+        if (updateCount > 0)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = true,
+                Message = MessageConstants.GoogleRefreshTokenSuccessMessage,
+                HttpStatusCode = HttpStatusCode.OK
+            };
+        }
+
+        return new ResponseDto<string?>
+        {
+            IsSuccess = false,
+            Message = MessageConstants.GoogleRefreshTokenFailureMessage,
+            HttpStatusCode = HttpStatusCode.InternalServerError
+        };
+    }
+
+    private async Task<GoogleTokenResponseDto?> GoogleExchangeAuthorizationCodeForTokensAsync(string code, CancellationToken cancellationToken = default)
+    {
+        var googleOAuthConfigurationDto = _configuration
+            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .Get<GoogleOAuth2ConfigurationDto>()!;
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        httpClient.Timeout = TimeSpan.FromSeconds(5d);
+
+        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
+
+        IEnumerable<KeyValuePair<string, string>> nameValueCollection =
+        [
+            new KeyValuePair<string, string>(CustomOAuthConstants.CodeParameterName, code),
+            new KeyValuePair<string, string>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string>(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new KeyValuePair<string, string>(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new KeyValuePair<string, string>(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.AuthorizationCodeGrantType)
+        ];
+
+        var content = new FormUrlEncodedContent(nameValueCollection);
+
+        request.Content = content;
+
+        var response = await httpClient.SendAsync(request, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        var googleTokenResponseDto = JsonSerializer.Deserialize<GoogleTokenResponseDto>(responseString);
+
+        return googleTokenResponseDto;
+    }
+
+    private ResponseDto<string?> GoogleGenerateOAuth2RequestUrl()
+    {
+        var googleOAuthConfigurationDto = _configuration
+            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .Get<GoogleOAuth2ConfigurationDto>()!;
+
+        var state = Guid.NewGuid().ToString();
+
+        StoreStateAndUsernameInMemoryCache(state, CustomOAuthConstants.GoogleSignupPendingUsername);
+
+        var scopes = string.Join(' ', OAuthScopeConstants.EmailScope, OAuthScopeConstants.ProfileScope, OAuthScopeConstants.OpenIdScope);
+
+        IEnumerable<KeyValuePair<string, string?>> queryParameters =
+        [
+            new KeyValuePair<string, string?>(CustomOAuthConstants.ScopeParameterName, scopes),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.AccessTypeParameterName, CustomOAuthConstants.OfflineAccessType),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.StateParameterName, state),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new KeyValuePair<string, string?>(CustomOAuthConstants.PromptParameterName, CustomOAuthConstants.ConsentPrompt)
+        ];
+
+        var finalUrl = QueryHelpers.AddQueryString(googleOAuthConfigurationDto.AuthUri, queryParameters);
+
+        return new ResponseDto<string?>
+        {
+            Data = finalUrl,
+            IsSuccess = true,
+            HttpStatusCode = HttpStatusCode.OK
+        };
+    }
+
     private async Task<ResponseDto<string?>> GoogleRevokeTokenAsync(string token, CancellationToken cancellationToken = default)
     {
         var googleOAuthConfigurationDto = _configuration
@@ -260,7 +438,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         var requestUri = QueryHelpers.AddQueryString(
             googleOAuthConfigurationDto.RevokeUri,
-            OAuth2Constants.TokenParameterName,
+            CustomOAuthConstants.TokenParameterName,
             token);
 
         httpClient.Timeout = TimeSpan.FromSeconds(5d);
@@ -291,132 +469,9 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         };
     }
 
-    private async Task<ResponseDto<string?>> GoogleRefreshAccessTokenAsync(User user, CancellationToken cancellationToken = default)
-    {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
+    private void StoreStateAndUsernameInMemoryCache(string state, string username) =>
+        _memoryCache.Set(state, username, _memoryCacheEntryOptions);
 
-        var httpClient = _httpClientFactory.CreateClient();
-
-        httpClient.Timeout = TimeSpan.FromSeconds(5d);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
-
-        IEnumerable<KeyValuePair<string, string>> nameValueCollection =
-        [
-            new KeyValuePair<string, string>(OAuth2Constants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(OAuth2Constants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(OAuth2Constants.GrantTypeParameterName, OAuth2Constants.RefreshTokenGrantType),
-            new KeyValuePair<string, string>(OAuth2Constants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
-        ];
-
-        var content = new FormUrlEncodedContent(nameValueCollection);
-
-        request.Content = content;
-
-        var response = await httpClient.SendAsync(request, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = false,
-                Message = FailureMessage,
-                HttpStatusCode = HttpStatusCode.InternalServerError
-            };
-        }
-
-        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        var googleTokenResponseDto = JsonSerializer.Deserialize<GoogleTokenResponseDto>(responseString);
-
-        if (googleTokenResponseDto is null)
-        {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = false,
-                Message = FailureMessage,
-                HttpStatusCode = HttpStatusCode.InternalServerError
-            };
-        }
-
-        user.GoogleToken.Scope = googleTokenResponseDto.Scope;
-        user.GoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
-        user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
-        user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
-        user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
-        user.GoogleToken.MarkAsUpdated();
-
-        user.MarkAsUpdated();
-
-        var updateCount = await _userRepository.SaveChangesAsync(cancellationToken);
-
-        if (updateCount > 0)
-        {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = true,
-                Message = SuccessMessage,
-                HttpStatusCode = HttpStatusCode.OK
-            };
-        }
-
-        return new ResponseDto<string?>
-        {
-            IsSuccess = false,
-            Message = FailureMessage,
-            HttpStatusCode = HttpStatusCode.InternalServerError
-        };
-    }
-
-    private async Task<bool> StoreGoogleTokensAsync(GoogleTokenResponseDto googleTokenResponseDto, string state, CancellationToken cancellationToken = default)
-    {
-        var userId = RetrieveUserIdFromMemoryCache(state);
-
-        if (userId is null)
-        {
-            return false;
-        }
-
-        var user = await _userRepository
-            .GetByIdAsync(
-                userId.Value,
-                users => users.Include(user => user.GoogleToken),
-                cancellationToken);
-
-        if (user!.GoogleToken is not null)
-        {
-            user.GoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
-            user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
-            user.GoogleToken.RefreshToken = googleTokenResponseDto.RefreshToken!;
-            user.GoogleToken.Scope = googleTokenResponseDto.Scope;
-            user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
-            user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
-            user.GoogleToken.MarkAsUpdated();
-            user.MarkAsUpdated();
-
-            var updateCount = await _googleTokenRepository.SaveChangesAsync(cancellationToken);
-
-            return updateCount > 0;
-        }
-
-        var googleToken = googleTokenResponseDto.ToGoogleTokenDomainEntity();
-
-        googleToken.UserId = user.Id;
-
-        await _googleTokenRepository.CreateAsync(googleToken, cancellationToken);
-
-        user.MarkAsUpdated();
-
-        var insertCount = await _googleTokenRepository.SaveChangesAsync(cancellationToken);
-
-        return insertCount > 0;
-    }
-
-    private void StoreStateAndUserIdInMemoryCache(string state, long userId) =>
-        _memoryCache.Set(state, userId, _memoryCacheEntryOptions);
-
-    private long? RetrieveUserIdFromMemoryCache(string state) =>
-        _memoryCache.TryGetValue<long>(state, out var userId) ? userId : null;
+    private string? RetrieveUsernameFromMemoryCache(string state) =>
+        _memoryCache.TryGetValue<string>(state, out var username) ? username : null;
 }

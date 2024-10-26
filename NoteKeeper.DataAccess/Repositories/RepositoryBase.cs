@@ -60,7 +60,7 @@ public class RepositoryBase<T> : IRepositoryBase<T>
     {
         var query = _dbSet.Where(entity => entity.Id == id);
 
-        if (include != null)
+        if (include is not null)
         {
             query = include(query);
         }
@@ -75,7 +75,7 @@ public class RepositoryBase<T> : IRepositoryBase<T>
     {
         var query = _dbSet.Where(entity => entity.Uuid == uuid);
 
-        if (include != null)
+        if (include is not null)
         {
             query = include(query);
         }

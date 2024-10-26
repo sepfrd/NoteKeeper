@@ -5,9 +5,9 @@ namespace NoteKeeper.Business.Dtos.Notion;
 
 public record NotionOwnerDto
 {
-    [JsonPropertyName(OAuth2Constants.NotionTypeJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionTypeJsonPropertyName)]
     public string? Type { get; set; }
 
-    [JsonPropertyName(OAuth2Constants.NotionUserJsonPropertyName)]
+    [JsonPropertyName(CustomOAuthConstants.NotionUserJsonPropertyName)]
     public NotionUserDto? User { get; set; }
 }

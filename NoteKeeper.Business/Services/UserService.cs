@@ -12,16 +12,16 @@ namespace NoteKeeper.Business.Services;
 
 public class UserService : IUserService
 {
-    private readonly IRepositoryBase<User> _userRepository;
+    private readonly IUserRepository _userRepository;
 
-    public UserService(IRepositoryBase<User> userRepository)
+    public UserService(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }
 
     public async Task<ResponseDto<UserDto?>> CreateUserAsync(CreateUserRequestDto createUserRequestDto, CancellationToken cancellationToken = default)
     {
-        var isUsernameUnique = await IsUsernameUnique(createUserRequestDto.Username, cancellationToken);
+        var isUsernameUnique = await _userRepository.IsUsernameUniqueAsync(createUserRequestDto.Username, cancellationToken);
 
         if (!isUsernameUnique)
         {
@@ -39,7 +39,7 @@ public class UserService : IUserService
             };
         }
 
-        var isEmailUnique = await IsEmailUnique(createUserRequestDto.Email, cancellationToken);
+        var isEmailUnique = await _userRepository.IsEmailUniqueAsync(createUserRequestDto.Email, cancellationToken);
 
         if (!isEmailUnique)
         {
@@ -71,29 +71,5 @@ public class UserService : IUserService
             IsSuccess = true,
             HttpStatusCode = HttpStatusCode.Created
         };
-    }
-
-    private async Task<bool> IsUsernameUnique(string username, CancellationToken cancellationToken = default)
-    {
-        var user = await _userRepository.GetAllAsync(
-            1,
-            1,
-            user => user.Username == username,
-            null,
-            cancellationToken);
-
-        return user.Count == 0;
-    }
-
-    private async Task<bool> IsEmailUnique(string email, CancellationToken cancellationToken = default)
-    {
-        var user = await _userRepository.GetAllAsync(
-            1,
-            1,
-            user => user.Email == email,
-            null,
-            cancellationToken);
-
-        return user.Count == 0;
     }
 }
