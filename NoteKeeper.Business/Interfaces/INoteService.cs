@@ -9,8 +9,8 @@ public interface INoteService
     Task<ResponseDto<NoteDto?>> CreateAsync(CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken = default);
 
     Task<ResponseDto<List<NoteDto>>> GetAllAsync(
-        int pageNumber = 1,
-        int pageSize = 10,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken = default);
 
     Task<ResponseDto<NoteDto?>> GetByUuidAsync(Guid noteUuid, CancellationToken cancellationToken = default);
@@ -18,4 +18,8 @@ public interface INoteService
     Task<ResponseDto<NoteDto?>> UpdateByUuidAsync(Guid noteUuid, UpdateNoteRequestDto updateNoteRequestDto, CancellationToken cancellationToken = default);
 
     Task<ResponseDto<NoteDto?>> DeleteByUuidAsync(Guid noteUuid, CancellationToken cancellationToken = default);
+
+    Task SubscribeToNoteChangesAsync(Guid noteUuid);
+
+    Task UnsubscribeFromNoteChangesAsync(Guid noteUuid);
 }

@@ -13,7 +13,9 @@ builder.Services
     .AddServices()
     .AddNoteKeeperDbContext(builder.Configuration)
     .AddAuth()
-    .AddJsonSerializerOptions();
+    .AddJsonSerializerOptions()
+    .AddRedisConnectionMultiplexer(builder.Configuration)
+    .AddExternalServices();
 
 var app = builder.Build();
 

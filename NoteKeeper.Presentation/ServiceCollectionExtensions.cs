@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using NoteKeeper.Business.Constants;
+using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.DomainEntities;
+using NoteKeeper.Business.ExternalServices;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.Business.Services;
 using NoteKeeper.Business.Services.OAuth.V2;
@@ -15,6 +18,7 @@ using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
 using NoteKeeper.DataAccess.Repositories;
 using NoteKeeper.Presentation.Authentication;
+using StackExchange.Redis;
 
 namespace NoteKeeper.Presentation;
 
@@ -80,7 +84,7 @@ public static class ServiceCollectionExtensions
         services
             .AddDbContext<NoteKeeperDbContext>(options =>
             {
-                options.UseNpgsql(configuration.GetConnectionString(ConfigurationConstants.PostgreSqlConfigurationKey));
+                options.UseNpgsql(configuration.GetConnectionString(ConfigurationConstants.PostgreSqlConnectionStringKey));
                 options.EnableSensitiveDataLogging();
             });
 
@@ -112,4 +116,40 @@ public static class ServiceCollectionExtensions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5d)
             });
+
+    public static IServiceCollection AddRedisConnectionMultiplexer(this IServiceCollection services, IConfiguration configuration)
+    {
+        var redisConfigurationDto = configuration
+            .GetSection(ConfigurationConstants.RedisConfigurationSectionKey)
+            .Get<RedisConfigurationDto>()!;
+
+        var redisConnectionString = $"{redisConfigurationDto.Endpoint}:{redisConfigurationDto.Port}";
+
+        var redisConfigurationOptions = new ConfigurationOptions
+        {
+            Ssl = redisConfigurationDto.UseSsl,
+            User = redisConfigurationDto.User,
+            Password = redisConfigurationDto.Password,
+            KeepAlive = redisConfigurationDto.KeepAlive,
+            ConnectTimeout = redisConfigurationDto.ConnectTimeout,
+            ConnectRetry = redisConfigurationDto.RetryAttempts,
+            ClientName = redisConfigurationDto.ClientName,
+            DefaultDatabase = redisConfigurationDto.Database,
+            EndPoints = { redisConnectionString },
+            AbortOnConnectFail = false
+        };
+
+        var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConfigurationOptions);
+
+        connectionMultiplexer.GetDatabase().KeyDelete(ApplicationConstants.RedisNotesSubscriptionSetKey);
+
+        services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+
+        return services;
+    }
+
+    public static IServiceCollection AddExternalServices(this IServiceCollection services) =>
+        services
+            .AddScoped<IRedisPubSubService<NoteDto>, RedisPubSubService<NoteDto>>()
+            .AddScoped<IRedisService, RedisService>();
 }

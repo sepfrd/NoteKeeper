@@ -18,7 +18,6 @@ public class NoteController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> CreateNoteAsync([FromBody] CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken)
     {
         var result = await _noteService.CreateAsync(createNoteRequestDto, cancellationToken);
@@ -26,10 +25,19 @@ public class NoteController : ControllerBase
         return StatusCode((int)result.HttpStatusCode, result);
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAllNotesAsync([FromQuery] int pageNumber, int pageSize, CancellationToken cancellationToken)
+    [HttpPost]
+    [Route("uuid/{noteUuid:guid}/subscription")]
+    public async Task<IActionResult> SubscribeToNoteChangesAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
     {
-        var result = await _noteService.GetAllAsync(pageNumber, pageSize, cancellationToken);
+        await _noteService.SubscribeToNoteChangesAsync(noteUuid);
+
+        return Ok();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllNotesAsync([FromQuery] int? pageNumber, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+    {
+        var result = await _noteService.GetAllAsync(pageNumber ?? 1, pageSize ?? 10, cancellationToken);
 
         return StatusCode((int)result.HttpStatusCode, result);
     }
@@ -65,5 +73,14 @@ public class NoteController : ControllerBase
         var result = await _noteService.DeleteByUuidAsync(noteUuid, cancellationToken);
 
         return StatusCode((int)result.HttpStatusCode, result);
+    }
+
+    [HttpDelete]
+    [Route("uuid/{noteUuid:guid}/subscription")]
+    public async Task<IActionResult> UnsubscribeFromNoteChangesAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
+    {
+        await _noteService.UnsubscribeFromNoteChangesAsync(noteUuid);
+
+        return Ok();
     }
 }

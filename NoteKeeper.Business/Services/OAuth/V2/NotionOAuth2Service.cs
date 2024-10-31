@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Mime;
@@ -25,8 +26,8 @@ public class NotionOAuth2Service : INotionOAuth2Service
     private readonly IRepositoryBase<NotionToken> _notionTokenRepository;
     private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
-    private readonly string SuccessMessage = string.Format(MessageConstants.OAuthSuccessMessageTemplate, "Notion");
-    private readonly string FailureMessage = string.Format(MessageConstants.OAuthFailureMessageTemplate, "Notion");
+    private readonly string SuccessMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthSuccessMessageTemplate, "Notion");
+    private readonly string FailureMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthFailureMessageTemplate, "Notion");
 
     public NotionOAuth2Service(
         IConfiguration configuration,
@@ -77,7 +78,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
     private ResponseDto<string?> NotionGenerateOAuth2RequestUrl(User user)
     {
         var notionOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.NotionOAuth2Configuration)
+            .GetSection(ConfigurationConstants.NotionOAuth2ConfigurationSectionKey)
             .Get<NotionOAuth2ConfigurationDto>()!;
 
         var state = Guid.NewGuid().ToString();
@@ -108,7 +109,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         CancellationToken cancellationToken = default)
     {
         var notionOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.NotionOAuth2Configuration)
+            .GetSection(ConfigurationConstants.NotionOAuth2ConfigurationSectionKey)
             .Get<NotionOAuth2ConfigurationDto>()!;
 
         var httpClient = _httpClientFactory.CreateClient();

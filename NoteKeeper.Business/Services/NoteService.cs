@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
@@ -8,6 +9,7 @@ using NoteKeeper.Business.Dtos.Requests;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
+using StackExchange.Redis;
 
 namespace NoteKeeper.Business.Services;
 
@@ -15,11 +17,19 @@ public class NoteService : INoteService
 {
     private readonly IRepositoryBase<Note> _noteRepository;
     private readonly IAuthService _authService;
+    private readonly IRedisPubSubService<NoteDto> _redisPubSubService;
+    private readonly IRedisService _redisService;
 
-    public NoteService(IRepositoryBase<Note> noteRepository, IAuthService authService)
+    public NoteService(
+        IRepositoryBase<Note> noteRepository,
+        IAuthService authService,
+        IRedisPubSubService<NoteDto> redisPubSubService,
+        IRedisService redisService)
     {
         _noteRepository = noteRepository;
         _authService = authService;
+        _redisPubSubService = redisPubSubService;
+        _redisService = redisService;
     }
 
     public async Task<ResponseDto<NoteDto?>> CreateAsync(CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken = default)
@@ -56,8 +66,8 @@ public class NoteService : INoteService
     }
 
     public async Task<ResponseDto<List<NoteDto>>> GetAllAsync(
-        int pageNumber = 1,
-        int pageSize = 10,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken = default)
     {
         var user = await _authService.GetSignedInUserAsync(
@@ -181,6 +191,16 @@ public class NoteService : INoteService
 
         noteDto.UserUuid = user.Uuid;
 
+        var isSubscribed = await _redisService
+            .ValueExistsInRedisSetAsync(
+                ApplicationConstants.RedisNotesSubscriptionSetKey,
+                noteUuid.ToString());
+
+        if (isSubscribed)
+        {
+            await _redisPubSubService.PublishMessageAsync(noteDto, noteUuid.ToString());
+        }
+
         var successMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.SuccessfulUpdateMessage, nameof(Note).ToLowerInvariant());
 
         return new ResponseDto<NoteDto?>
@@ -239,5 +259,38 @@ public class NoteService : INoteService
             Message = successMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
+    }
+
+    public async Task SubscribeToNoteChangesAsync(Guid noteUuid)
+    {
+        var noteUuidString = noteUuid.ToString();
+
+        await _redisPubSubService.SubscribeToChannelAsync(noteUuidString, SubscriptionHandler);
+
+        await _redisService.AddValueToRedisSetAsync(ApplicationConstants.RedisNotesSubscriptionSetKey, noteUuidString);
+    }
+
+    public async Task UnsubscribeFromNoteChangesAsync(Guid noteUuid)
+    {
+        var noteUuidString = noteUuid.ToString();
+
+        await _redisPubSubService.UnsubscribeFromChannelAsync(noteUuidString, SubscriptionHandler);
+
+        await _redisService.RemoveValueFromRedisSetAsync(ApplicationConstants.RedisNotesSubscriptionSetKey, noteUuidString);
+    }
+
+    private static void SubscriptionHandler(RedisChannel redisChannel, RedisValue redisValue)
+    {
+        const string messageTemplate = "Received a Redis message from channel '{0}': \n{1}";
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+
+        var noteDto = JsonSerializer.Deserialize<NoteDto>(redisValue!);
+
+        var serializedRedisValue = JsonSerializer.Serialize(noteDto);
+
+        var message = string.Format(CultureInfo.InvariantCulture, messageTemplate, redisChannel, serializedRedisValue);
+
+        Console.WriteLine(message);
     }
 }

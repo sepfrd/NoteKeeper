@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -152,7 +153,10 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
             var newUserJwt = _authService.GenerateEd25519Jwt(createdUser);
 
-            var signupMessage = string.Format(MessageConstants.GoogleSignupSuccessMessageTemplate, user.FullName);
+            var signupMessage = string.Format(
+                CultureInfo.InvariantCulture,
+                MessageConstants.GoogleSignupSuccessMessageTemplate,
+                user.FullName);
 
             return new ResponseDto<string?>
             {
@@ -188,7 +192,10 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         var existingUserJwt = _authService.GenerateEd25519Jwt(user);
 
-        var signinMessage = string.Format(MessageConstants.GoogleSigninSuccessMessageTemplate, user.FullName);
+        var signinMessage = string.Format(
+            CultureInfo.InvariantCulture,
+            MessageConstants.GoogleSigninSuccessMessageTemplate,
+            user.FullName);
 
         return new ResponseDto<string?>
         {
@@ -279,7 +286,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         }
 
         var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
             .Get<GoogleOAuth2ConfigurationDto>()!;
 
         var httpClient = _httpClientFactory.CreateClient();
@@ -358,7 +365,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private async Task<GoogleTokenResponseDto?> GoogleExchangeAuthorizationCodeForTokensAsync(string code, CancellationToken cancellationToken = default)
     {
         var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
             .Get<GoogleOAuth2ConfigurationDto>()!;
 
         var httpClient = _httpClientFactory.CreateClient();
@@ -397,7 +404,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private ResponseDto<string?> GoogleGenerateOAuth2RequestUrl()
     {
         var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
             .Get<GoogleOAuth2ConfigurationDto>()!;
 
         var state = Guid.NewGuid().ToString();
@@ -431,7 +438,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private async Task<ResponseDto<string?>> GoogleRevokeTokenAsync(string token, CancellationToken cancellationToken = default)
     {
         var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2Configuration)
+            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
             .Get<GoogleOAuth2ConfigurationDto>()!;
 
         var httpClient = _httpClientFactory.CreateClient();
