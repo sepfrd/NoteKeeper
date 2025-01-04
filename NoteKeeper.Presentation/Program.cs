@@ -1,31 +1,49 @@
+using Microsoft.EntityFrameworkCore;
+using NoteKeeper.DataAccess;
 using NoteKeeper.Presentation;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddHttpContextAccessor()
-    .AddHttpClient()
-    .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
-    .AddMemoryCacheEntryOptions()
-    .AddSwagger()
-    .AddApiControllers()
-    .AddRepositories()
-    .AddServices()
-    .AddNoteKeeperDbContext(builder.Configuration)
-    .AddAuth()
-    .AddJsonSerializerOptions()
-    .AddRedisConnectionMultiplexer(builder.Configuration)
-    .AddExternalServices();
+try
+{
+    builder.Services
+        .AddHttpContextAccessor()
+        .AddHttpClient()
+        .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
+        .AddMemoryCacheEntryOptions()
+        .AddOpenApi()
+        .AddApiControllers()
+        .AddRepositories()
+        .AddServices()
+        .AddNoteKeeperDbContext(builder.Configuration)
+        .AddAuth()
+        .AddJsonSerializerOptions()
+        .AddRedisConnectionMultiplexer(builder.Configuration)
+        .AddExternalServices();
 
-var app = builder.Build();
+    var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+    await using var scope = app.Services.CreateAsyncScope();
 
-app.UseHttpsRedirection();
+    await using var context = scope.ServiceProvider.GetRequiredService<NoteKeeperDbContext>();
 
-app.UseAuthorization();
+    await context.Database.MigrateAsync();
 
-app.MapControllers();
+    //app.UseHsts();
 
-app.Run();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+
+    app.UseHttpsRedirection();
+
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
+}
+catch (Exception exception)
+{
+    Console.WriteLine(exception);
+}

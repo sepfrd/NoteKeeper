@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres
+    environment:
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready --host=postgres --username=postgres" ]
+      interval: 1s
+      timeout: 10s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '1524M'
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  note-keeper:
+    image: local/note-keeper:1.0
+    build:
+      context: .
+      dockerfile: ./NoteKeeper.Presentation/Dockerfile
+    environment:
+      # General Configuration
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://0.0.0.0:${APPLICATION_HTTP_PORT};https://0.0.0.0:${APPLICATION_HTTPS_PORT};"
+      AllowedHosts: "*"
+
+      # Logging Configuration
+      Logging__LogLevel__Default: "Warning"
+      Logging__LogLevel__MicrosoftAspNetCore: "Warning"
+
+      # Connection Strings
+      ConnectionStrings__PostgreSql: "Host=postgres;Port=5432;Database=NoteKeeper;User Id=postgres;Password=${POSTGRES_PASSWORD};Trust Server Certificate=True"
+
+      # Redis Configuration
+      RedisConfiguration__Endpoint: "redis"
+      RedisConfiguration__Port: 6379
+      RedisConfiguration__User: ""
+      RedisConfiguration__Password: ""
+      RedisConfiguration__Database: 0
+      RedisConfiguration__ConnectTimeout: 5000
+      RedisConfiguration__UseSsl: "false"
+      RedisConfiguration__ClientName: "NoteKeeper"
+      RedisConfiguration__RetryAttempts: 5
+      RedisConfiguration__KeepAlive: 180
+
+      # Ed25519 JWT Configuration
+      Ed25519JwtConfiguration__PrivateKey: "zGlnIhrrtTBorcUHpjjZiR8dntN1l0r/Y73tgNS/dg4="
+      Ed25519JwtConfiguration__PublicKey: "5ifbj0xfRvyyGDD9xMlNxP1z9coC/RR2Ze6PdO29k94="
+      Ed25519JwtConfiguration__Issuer: "NoteKeeper Server Application"
+      Ed25519JwtConfiguration__Audience: "NoteKeeper Client Application"
+      Ed25519JwtConfiguration__TokenLifetimeInSeconds: 86400
+
+      # Google OAuth2 Configuration
+      GoogleOAuth2Configuration__RedirectUri: "https://redirectmeto.com/https://localhost:${APPLICATION_HTTPS_PORT}/api/oauth/v2/google/code"
+      GoogleOAuth2Configuration__ClientId: "357223296445-d9kvdtcof95ejsu93m713s8ula3s9d4j.apps.googleusercontent.com"
+      GoogleOAuth2Configuration__ProjectId: "notekeeper-436321"
+      GoogleOAuth2Configuration__AuthUri: "https://accounts.google.com/o/oauth2/auth"
+      GoogleOAuth2Configuration__TokenUri: "https://oauth2.googleapis.com/token"
+      GoogleOAuth2Configuration__RevokeUri: "https://oauth2.googleapis.com/revoke"
+      GoogleOAuth2Configuration__AuthProviderX509CertUrl: "https://www.googleapis.com/oauth2/v1/certs"
+      GoogleOAuth2Configuration__ClientSecret: "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"
+
+      # Notion OAuth2 Configuration
+      NotionOAuth2Configuration__RedirectUri: "https://redirectmeto.com/https://localhost:${APPLICATION_HTTPS_PORT}/api/oauth/v2/notion/code"
+      NotionOAuth2Configuration__ClientId: "129d872b-594c-8076-a1d1-0037473cf298"
+      NotionOAuth2Configuration__AuthUri: "https://api.notion.com/v1/oauth/authorize"
+      NotionOAuth2Configuration__TokenUri: "https://api.notion.com/v1/oauth/token"
+      NotionOAuth2Configuration__ClientSecret: "secret_9O8gpqdZP9rbWnXPzgME7N5V54gBBM54Mgi6NYFhXRc"
+    ports:
+      - "${APPLICATION_HTTP_PORT}:8080"
+      - "${APPLICATION_HTTPS_PORT}:443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+

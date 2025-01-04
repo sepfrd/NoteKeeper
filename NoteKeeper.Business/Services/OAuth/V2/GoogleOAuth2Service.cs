@@ -285,6 +285,16 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             };
         }
 
+        if (user.GoogleToken is null)
+        {
+            return new ResponseDto<string?>
+            {
+                IsSuccess = false,
+                Message = MessageConstants.NoTokensFound,
+                HttpStatusCode = HttpStatusCode.BadRequest
+            };
+        }
+
         var googleOAuthConfigurationDto = _configuration
             .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
             .Get<GoogleOAuth2ConfigurationDto>()!;
@@ -297,10 +307,10 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
-            new KeyValuePair<string, string>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.RefreshTokenGrantType),
-            new KeyValuePair<string, string>(CustomOAuthConstants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
+            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.RefreshTokenGrantType),
+            new(CustomOAuthConstants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
         ];
 
         var content = new FormUrlEncodedContent(nameValueCollection);
@@ -376,11 +386,11 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
-            new KeyValuePair<string, string>(CustomOAuthConstants.CodeParameterName, code),
-            new KeyValuePair<string, string>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string>(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new KeyValuePair<string, string>(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string>(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.AuthorizationCodeGrantType)
+            new(CustomOAuthConstants.CodeParameterName, code),
+            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.AuthorizationCodeGrantType)
         ];
 
         var content = new FormUrlEncodedContent(nameValueCollection);
@@ -415,14 +425,14 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         IEnumerable<KeyValuePair<string, string?>> queryParameters =
         [
-            new KeyValuePair<string, string?>(CustomOAuthConstants.ScopeParameterName, scopes),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.AccessTypeParameterName, CustomOAuthConstants.OfflineAccessType),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.StateParameterName, state),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.PromptParameterName, CustomOAuthConstants.ConsentPrompt)
+            new(CustomOAuthConstants.ScopeParameterName, scopes),
+            new(CustomOAuthConstants.AccessTypeParameterName, CustomOAuthConstants.OfflineAccessType),
+            new(CustomOAuthConstants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
+            new(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
+            new(CustomOAuthConstants.StateParameterName, state),
+            new(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.PromptParameterName, CustomOAuthConstants.ConsentPrompt)
         ];
 
         var finalUrl = QueryHelpers.AddQueryString(googleOAuthConfigurationDto.AuthUri, queryParameters);

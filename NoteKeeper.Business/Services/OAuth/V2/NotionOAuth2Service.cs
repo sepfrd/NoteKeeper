@@ -87,11 +87,11 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         IEnumerable<KeyValuePair<string, string?>> queryParameters =
         [
-            new KeyValuePair<string, string?>(CustomOAuthConstants.ClientIdParameterName, notionOAuthConfigurationDto.ClientId),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.NotionOwnerParameterName, CustomOAuthConstants.NotionUserOwnerType),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.RedirectUriParameterName, notionOAuthConfigurationDto.RedirectUri),
-            new KeyValuePair<string, string?>(CustomOAuthConstants.StateParameterName, state)
+            new(CustomOAuthConstants.ClientIdParameterName, notionOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
+            new(CustomOAuthConstants.NotionOwnerParameterName, CustomOAuthConstants.NotionUserOwnerType),
+            new(CustomOAuthConstants.RedirectUriParameterName, notionOAuthConfigurationDto.RedirectUri),
+            new(CustomOAuthConstants.StateParameterName, state)
         ];
 
         var finalUrl = QueryHelpers.AddQueryString(notionOAuthConfigurationDto.AuthUri, queryParameters);

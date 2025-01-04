@@ -1,11 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.Net.Http.Headers;
-using Microsoft.OpenApi.Models;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.DomainEntities;
@@ -24,36 +21,6 @@ namespace NoteKeeper.Presentation;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSwagger(this IServiceCollection services) =>
-        services
-            .AddSwaggerGen(options =>
-            {
-                options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
-                {
-                    In = ParameterLocation.Header,
-                    Description = MessageConstants.SwaggerAuthorizationMessage,
-                    Name = HeaderNames.Authorization,
-                    Type = SecuritySchemeType.Http,
-                    BearerFormat = JwtConstants.TokenType,
-                    Scheme = JwtBearerDefaults.AuthenticationScheme.ToLowerInvariant()
-                });
-
-                options.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = JwtBearerDefaults.AuthenticationScheme
-                            }
-                        },
-                        []
-                    }
-                });
-            });
-
     public static IServiceCollection AddApiControllers(this IServiceCollection services) =>
         services
             .AddControllers()
@@ -83,10 +50,11 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddNoteKeeperDbContext(this IServiceCollection services, IConfiguration configuration) =>
         services
             .AddDbContext<NoteKeeperDbContext>(options =>
-            {
-                options.UseNpgsql(configuration.GetConnectionString(ConfigurationConstants.PostgreSqlConnectionStringKey));
-                options.EnableSensitiveDataLogging();
-            });
+                options
+                    .UseNpgsql(configuration.GetConnectionString(ConfigurationConstants.PostgreSqlConnectionStringKey))
+                    .EnableSensitiveDataLogging()
+                    .UseSeeding((dbContext, _) => dbContext.SeedDatabase())
+                    .UseAsyncSeeding((dbContext, _, _) => Task.FromResult(dbContext.SeedDatabase())));
 
     public static IServiceCollection AddAuth(this IServiceCollection services) =>
         services
@@ -152,4 +120,25 @@ public static class ServiceCollectionExtensions
         services
             .AddScoped<IRedisPubSubService<NoteDto>, RedisPubSubService<NoteDto>>()
             .AddScoped<IRedisService, RedisService>();
+
+    private static DbContext SeedDatabase(this DbContext dbContext)
+    {
+        var usersDbSet = dbContext.Set<User>();
+
+        if (usersDbSet.Any())
+        {
+            return dbContext;
+        }
+
+        usersDbSet.Add(new User
+        {
+            Username = "sepehr_frd",
+            Email = "sepfrd@outlook.com",
+            PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword("Sfr1376.", HashType.SHA512, 12)
+        });
+
+        dbContext.SaveChanges();
+
+        return dbContext;
+    }
 }

@@ -17,12 +17,22 @@ public class RedisPubSubService<T> : IRedisPubSubService<T> where T : class
     {
         var serializedMessage = JsonSerializer.Serialize(message);
 
-        await _redisSubscriber.PublishAsync(channel, serializedMessage);
+        var redisChannel = new RedisChannel(channel, RedisChannel.PatternMode.Literal);
+
+        await _redisSubscriber.PublishAsync(redisChannel, serializedMessage);
     }
 
-    public async Task SubscribeToChannelAsync(string channel, Action<RedisChannel, RedisValue> handler) =>
-        await _redisSubscriber.SubscribeAsync(channel, handler);
+    public async Task SubscribeToChannelAsync(string channel, Action<RedisChannel, RedisValue> handler)
+    {
+        var redisChannel = new RedisChannel(channel, RedisChannel.PatternMode.Literal);
 
-    public async Task UnsubscribeFromChannelAsync(string channel, Action<RedisChannel, RedisValue> handler) =>
-        await _redisSubscriber.UnsubscribeAsync(channel, handler);
+        await _redisSubscriber.SubscribeAsync(redisChannel, handler);
+    }
+
+    public async Task UnsubscribeFromChannelAsync(string channel, Action<RedisChannel, RedisValue> handler)
+    {
+        var redisChannel = new RedisChannel(channel, RedisChannel.PatternMode.Literal);
+
+        await _redisSubscriber.UnsubscribeAsync(redisChannel, handler);
+    }
 }

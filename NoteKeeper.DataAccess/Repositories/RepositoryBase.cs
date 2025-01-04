@@ -9,7 +9,7 @@ namespace NoteKeeper.DataAccess.Repositories;
 public class RepositoryBase<T> : IRepositoryBase<T>
     where T : DomainEntity
 {
-    private readonly DbContext _noteKeeperDbContext;
+    private readonly NoteKeeperDbContext _noteKeeperDbContext;
     private readonly DbSet<T> _dbSet;
 
     public RepositoryBase(NoteKeeperDbContext noteKeeperDbContext)

@@ -1,4 +1,3 @@
-using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.EntityConfigurations;
@@ -23,21 +22,10 @@ public class NoteKeeperDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.ApplyConfiguration(new DomainEntityConfiguration());
         modelBuilder.ApplyConfiguration(new GoogleTokenEntityConfiguration());
         modelBuilder.ApplyConfiguration(new NoteEntityConfiguration());
         modelBuilder.ApplyConfiguration(new NotionTokenEntityConfiguration());
         modelBuilder.ApplyConfiguration(new UserEntityConfiguration());
-
-        modelBuilder
-            .Entity<User>()
-            .HasData([
-                new User
-                {
-                    Id = 1L,
-                    Username = "sepehr_frd",
-                    Email = "sepfrd@outlook.com",
-                    PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword("Sfr1376.", HashType.SHA512, 12)
-                }
-            ]);
     }
 }
