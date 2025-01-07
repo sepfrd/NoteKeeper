@@ -30,13 +30,10 @@ try
 
     await context.Database.MigrateAsync();
 
-    //app.UseHsts();
-
     app.MapOpenApi();
     app.MapScalarApiReference();
 
-    app.UseHttpsRedirection();
-
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();

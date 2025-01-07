@@ -11,9 +11,6 @@ COPY ["NoteKeeper.Presentation/NoteKeeper.Presentation.csproj", "NoteKeeper.Pres
 COPY ["NoteKeeper.Business/NoteKeeper.Business.csproj", "NoteKeeper.Business/"]
 COPY ["NoteKeeper.DataAccess/NoteKeeper.DataAccess.csproj", "NoteKeeper.DataAccess/"]
 
-COPY ["certificate.crt", "/usr/local/share/ca-certificates/certificate.crt"]
-RUN update-ca-certificates
-
 RUN dotnet restore "NoteKeeper.Presentation/NoteKeeper.Presentation.csproj"
 COPY . .
 WORKDIR "/src/NoteKeeper.Presentation"
