@@ -4,9 +4,9 @@ using NoteKeeper.Business.Constants;
 
 namespace NoteKeeper.Business.Dtos;
 
-public class EdDSAJwtHeader
+public class EdDsaJwtHeader
 {
-    public EdDSAJwtHeader(
+    public EdDsaJwtHeader(
         string algorithm = JwtExtendedConstants.JwtAlgorithmEdDsa,
         string type = JwtConstants.TokenType,
         string curve = JwtExtendedConstants.JwtCurveEd25519,

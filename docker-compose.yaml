@@ -20,6 +20,7 @@ services:
     image: redis
     ports:
       - "6379:6379"
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -27,7 +28,7 @@ services:
       retries: 5
 
   note-keeper:
-    image: local/note-keeper:1.0
+    image: note-keeper:latest
     build:
       context: .
       dockerfile: ./NoteKeeper.Presentation/Dockerfile
@@ -46,8 +47,8 @@ services:
       # Redis Configuration
       RedisConfiguration__Endpoint: "redis"
       RedisConfiguration__Port: 6379
-      RedisConfiguration__User: ""
-      RedisConfiguration__Password: ""
+      RedisConfiguration__User: "${REDIS_USERNAME}"
+      RedisConfiguration__Password: "${REDIS_PASSWORD}"
       RedisConfiguration__Database: 0
       RedisConfiguration__ConnectTimeout: 5000
       RedisConfiguration__UseSsl: "false"
@@ -56,28 +57,28 @@ services:
       RedisConfiguration__KeepAlive: 180
 
       # Ed25519 JWT Configuration
-      Ed25519JwtConfiguration__PrivateKey: "zGlnIhrrtTBorcUHpjjZiR8dntN1l0r/Y73tgNS/dg4="
-      Ed25519JwtConfiguration__PublicKey: "5ifbj0xfRvyyGDD9xMlNxP1z9coC/RR2Ze6PdO29k94="
-      Ed25519JwtConfiguration__Issuer: "NoteKeeper Server Application"
-      Ed25519JwtConfiguration__Audience: "NoteKeeper Client Application"
+      Ed25519JwtConfiguration__PrivateKey: "${PRIVATE_KEY}"
+      Ed25519JwtConfiguration__PublicKey: "${PUBLIC_KEY}"
+      Ed25519JwtConfiguration__Issuer: "https://sepfrd.com"
+      Ed25519JwtConfiguration__Audience: "https://sepfrd.com"
       Ed25519JwtConfiguration__TokenLifetimeInSeconds: 86400
 
       # Google OAuth2 Configuration
-      GoogleOAuth2Configuration__RedirectUri: "https://redirectmeto.com/http://localhost:${APPLICATION_HTTP_PORT}/api/oauth/v2/google/code"
-      GoogleOAuth2Configuration__ClientId: "357223296445-d9kvdtcof95ejsu93m713s8ula3s9d4j.apps.googleusercontent.com"
-      GoogleOAuth2Configuration__ProjectId: "notekeeper-436321"
-      GoogleOAuth2Configuration__AuthUri: "https://accounts.google.com/o/oauth2/auth"
-      GoogleOAuth2Configuration__TokenUri: "https://oauth2.googleapis.com/token"
-      GoogleOAuth2Configuration__RevokeUri: "https://oauth2.googleapis.com/revoke"
-      GoogleOAuth2Configuration__AuthProviderX509CertUrl: "https://www.googleapis.com/oauth2/v1/certs"
-      GoogleOAuth2Configuration__ClientSecret: "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"
+      GoogleOAuth2Configuration__RedirectUri: "${GOOGLE_REDIRECT_URI}"
+      GoogleOAuth2Configuration__ClientId: "${GOOGLE_CLIENT_ID}"
+      GoogleOAuth2Configuration__ClientSecret: "${GOOGLE_CLIENT_SECRET}"
+      GoogleOAuth2Configuration__ProjectId: "${GOOGLE_PROJECT_ID}"
+      GoogleOAuth2Configuration__AuthUri: "${GOOGLE_AUTH_URI}"
+      GoogleOAuth2Configuration__TokenUri: "${GOOGLE_TOKEN_URI}"
+      GoogleOAuth2Configuration__RevokeUri: "${GOOGLE_REVOKE_URI}"
+      GoogleOAuth2Configuration__AuthProviderX509CertUrl: "${GOOGLE_AUTH_PROVIDER_X509_CERT_URL}"
 
       # Notion OAuth2 Configuration
-      NotionOAuth2Configuration__RedirectUri: "https://redirectmeto.com/http://localhost:${APPLICATION_HTTP_PORT}/api/oauth/v2/notion/code"
-      NotionOAuth2Configuration__ClientId: "129d872b-594c-8076-a1d1-0037473cf298"
-      NotionOAuth2Configuration__AuthUri: "https://api.notion.com/v1/oauth/authorize"
-      NotionOAuth2Configuration__TokenUri: "https://api.notion.com/v1/oauth/token"
-      NotionOAuth2Configuration__ClientSecret: "secret_9O8gpqdZP9rbWnXPzgME7N5V54gBBM54Mgi6NYFhXRc"
+      NotionOAuth2Configuration__RedirectUri: "${NOTION_REDIRECT_URI}"
+      NotionOAuth2Configuration__ClientId: "${NOTION_CLIENT_ID}"
+      NotionOAuth2Configuration__ClientSecret: "${NOTION_CLIENT_SECRET}"
+      NotionOAuth2Configuration__AuthUri: "${NOTION_AUTH_URI}"
+      NotionOAuth2Configuration__TokenUri: "${NOTION_TOKEN_URI}"
     ports:
       - "${APPLICATION_HTTP_PORT}:8080"
     depends_on:

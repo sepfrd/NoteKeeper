@@ -185,7 +185,7 @@ public class AuthService : IAuthService
             new(JwtExtendedConstants.JwtUuidClaimType, user.Uuid.ToString())
         };
 
-        var jwtHeader = new EdDSAJwtHeader();
+        var jwtHeader = new EdDsaJwtHeader();
 
         var payload = new JwtPayload(claims);
 

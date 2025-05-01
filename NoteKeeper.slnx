@@ -1,0 +1,5 @@
+<Solution>
+    <Project Path="NoteKeeper.Business/NoteKeeper.Business.csproj"/>
+    <Project Path="NoteKeeper.DataAccess/NoteKeeper.DataAccess.csproj"/>
+    <Project Path="NoteKeeper.Presentation/NoteKeeper.Presentation.csproj"/>
+</Solution>
