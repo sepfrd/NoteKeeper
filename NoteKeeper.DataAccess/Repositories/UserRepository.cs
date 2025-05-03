@@ -44,17 +44,25 @@ public class UserRepository : RepositoryBase<User>, IUserRepository
         return await query.SingleOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<bool> IsUsernameUniqueAsync(string username, CancellationToken cancellationToken = default) =>
-        !await _noteKeeperDbContext
-            .Users
-            .AnyAsync(user =>
-                    string.Equals(username, user.Username, StringComparison.InvariantCultureIgnoreCase),
-                cancellationToken);
+    public async Task<bool> IsUsernameUniqueAsync(string username, CancellationToken cancellationToken = default)
+    {
+        var loweredUsername = username.ToLowerInvariant();
 
-    public async Task<bool> IsEmailUniqueAsync(string email, CancellationToken cancellationToken = default) =>
-        !await _noteKeeperDbContext
+        var userExists = await _noteKeeperDbContext
             .Users
-            .AnyAsync(user =>
-                    string.Equals(email, user.Email, StringComparison.InvariantCultureIgnoreCase),
-                cancellationToken);
+            .AnyAsync(user => loweredUsername == user.Username, cancellationToken);
+
+        return !userExists;
+    }
+
+    public async Task<bool> IsEmailUniqueAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var loweredEmail = email.ToLowerInvariant();
+
+        var userExists = await _noteKeeperDbContext
+            .Users
+            .AnyAsync(user => loweredEmail == user.Email, cancellationToken);
+
+        return !userExists;
+    }
 }
