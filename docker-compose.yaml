@@ -35,6 +35,7 @@ services:
     environment:
       # General Configuration
       ASPNETCORE_ENVIRONMENT: Production
+      BaseUrl: "https://sepfrd.com/note-keeper/"
       AllowedHosts: "*"
 
       # Logging Configuration

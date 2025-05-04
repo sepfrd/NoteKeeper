@@ -2,6 +2,7 @@ namespace NoteKeeper.Business.Constants;
 
 public static class ConfigurationConstants
 {
+    public const string BaseUrlKey = "BaseUrl";
     public const string PostgreSqlConnectionStringKey = "PostgreSql";
     public const string RedisConfigurationSectionKey = "RedisConfiguration";
     public const string Ed25519JwtConfigurationSectionKey = "Ed25519JwtConfiguration";

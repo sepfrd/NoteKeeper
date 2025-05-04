@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.DataAccess;
 using NoteKeeper.Presentation;
+using NoteKeeper.Presentation.Transformers;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +13,10 @@ try
         .AddHttpClient()
         .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
         .AddMemoryCacheEntryOptions()
-        .AddOpenApi()
+        .AddOpenApi(options =>
+            options
+                .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
+                .AddDocumentTransformer<DocumentInfoTransformer>())
         .AddApiControllers()
         .AddRepositories()
         .AddServices()
@@ -31,7 +35,12 @@ try
     await context.Database.MigrateAsync();
 
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+        options.DarkMode = true;
+        options.Theme = ScalarTheme.BluePlanet;
+        options.Title = "Note Keeper";
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();
