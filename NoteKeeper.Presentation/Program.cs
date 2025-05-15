@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.DataAccess;
 using NoteKeeper.Presentation;
+using NoteKeeper.Presentation.Constants;
 using NoteKeeper.Presentation.Transformers;
 using Scalar.AspNetCore;
 
@@ -24,7 +25,8 @@ try
         .AddAuth()
         .AddJsonSerializerOptions()
         .AddRedisConnectionMultiplexer(builder.Configuration)
-        .AddExternalServices();
+        .AddExternalServices()
+        .AddCors(builder.Configuration);
 
     var app = builder.Build();
 
@@ -41,6 +43,10 @@ try
         options.Theme = ScalarTheme.BluePlanet;
         options.Title = "Note Keeper";
     });
+
+    app.UseCors(app.Environment.IsProduction()
+        ? CorsConstants.RestrictedCorsPolicy
+        : CorsConstants.AllowAnyOriginCorsPolicy);
 
     app.UseAuthentication();
     app.UseAuthorization();

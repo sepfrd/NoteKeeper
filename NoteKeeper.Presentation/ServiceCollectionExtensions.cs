@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Net.Http.Headers;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.DomainEntities;
@@ -15,6 +16,7 @@ using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
 using NoteKeeper.DataAccess.Repositories;
 using NoteKeeper.Presentation.Authentication;
+using NoteKeeper.Presentation.Constants;
 using StackExchange.Redis;
 
 namespace NoteKeeper.Presentation;
@@ -120,6 +122,43 @@ public static class ServiceCollectionExtensions
         services
             .AddScoped<IRedisPubSubService<NoteDto>, RedisPubSubService<NoteDto>>()
             .AddScoped<IRedisService, RedisService>();
+
+    public static IServiceCollection AddCors(this IServiceCollection services, IConfiguration configuration) =>
+        services.AddCors(options =>
+        {
+            options.AddPolicy(CorsConstants.RestrictedCorsPolicy, builder =>
+            {
+                var allowedUrl = configuration.GetValue<string>(ConfigurationConstants.BaseUrlKey)!;
+
+                builder
+                    .AllowAnyMethod()
+                    .WithHeaders(
+                        HeaderNames.Accept,
+                        HeaderNames.ContentType,
+                        HeaderNames.Authorization)
+                    .AllowCredentials()
+                    .SetIsOriginAllowed(origin =>
+                    {
+                        if (string.IsNullOrWhiteSpace(origin))
+                        {
+                            return false;
+                        }
+
+                        if (origin.StartsWith(allowedUrl, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    });
+            });
+
+            options.AddPolicy(CorsConstants.AllowAnyOriginCorsPolicy, builder =>
+                builder
+                    .AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader());
+        });
 
     private static DbContext SeedDatabase(this DbContext dbContext)
     {
