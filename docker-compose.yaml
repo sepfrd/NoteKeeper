@@ -34,7 +34,7 @@ services:
       dockerfile: ./NoteKeeper.Presentation/Dockerfile
     environment:
       # General Configuration
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
       BaseUrl: "https://sepfrd.com/note-keeper/"
       AllowedHosts: "*"
 
