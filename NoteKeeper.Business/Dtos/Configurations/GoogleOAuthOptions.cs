@@ -1,6 +1,6 @@
-namespace NoteKeeper.Business.Dtos.Google;
+namespace NoteKeeper.Business.Dtos.Configurations;
 
-public record GoogleOAuth2ConfigurationDto(
+public record GoogleOAuthOptions(
     string RedirectUri,
     string ClientId,
     string ProjectId,

@@ -1,3 +1,5 @@
+using NoteKeeper.DataAccess.Enums;
+
 namespace NoteKeeper.DataAccess.Entities;
 
 public class Note : DomainEntity
@@ -9,4 +11,6 @@ public class Note : DomainEntity
     public long UserId { get; set; }
 
     public User? User { get; set; }
+
+    public NoteOrigin Origin { get; set; } = NoteOrigin.Native;
 }

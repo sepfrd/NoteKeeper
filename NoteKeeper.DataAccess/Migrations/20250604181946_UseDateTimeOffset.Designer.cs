@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NoteKeeper.DataAccess;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,13 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NoteKeeper.DataAccess.Migrations
 {
     [DbContext(typeof(NoteKeeperDbContext))]
-    partial class NoteKeeperDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250604181946_UseDateTimeOffset")]
+    partial class UseDateTimeOffset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.5")
+                .HasAnnotation("ProductVersion", "9.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -59,29 +62,29 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("AccessToken")
                         .IsRequired()
                         .HasMaxLength(5000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("IdToken")
                         .HasMaxLength(5000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("Scope")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("TokenType")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -99,7 +102,7 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(2000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<byte>("Origin")
                         .HasColumnType("smallint");
@@ -107,7 +110,7 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -124,50 +127,50 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("AccessToken")
                         .IsRequired()
                         .HasMaxLength(5000)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("AvatarUrl")
                         .HasMaxLength(250)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("BotId")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<DateTimeOffset?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("NotionEmail")
                         .HasMaxLength(320)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("NotionId")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("TokenType")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("WorkspaceIconUrl")
                         .HasMaxLength(250)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("WorkspaceId")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("WorkspaceName")
                         .HasMaxLength(150)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -182,19 +185,19 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(320)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("FirstName")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("LastName")
                         .HasMaxLength(100)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<string>("PasswordHash")
                         .HasMaxLength(500)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.Property<byte>("RegistrationType")
                         .HasColumnType("smallint");
@@ -202,7 +205,7 @@ namespace NoteKeeper.DataAccess.Migrations
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("Varchar");
+                        .HasColumnType("VarChar");
 
                     b.HasIndex("Username")
                         .IsUnique();

@@ -4,7 +4,7 @@ public class NotionToken : DomainEntity
 {
     public required string AccessToken { get; set; }
 
-    public DateTime? ExpiresAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
 
     public required string TokenType { get; set; }
 
@@ -28,5 +28,5 @@ public class NotionToken : DomainEntity
 
     public User? User { get; set; }
 
-    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
 }

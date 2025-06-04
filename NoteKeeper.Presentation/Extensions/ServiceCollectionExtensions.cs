@@ -3,9 +3,10 @@ using System.Text.Json.Serialization;
 using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NoteKeeper.Business.Constants;
-using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Configurations;
 using NoteKeeper.Business.Dtos.DomainEntities;
 using NoteKeeper.Business.ExternalServices;
 using NoteKeeper.Business.Interfaces;
@@ -17,12 +18,40 @@ using NoteKeeper.DataAccess.Interfaces;
 using NoteKeeper.DataAccess.Repositories;
 using NoteKeeper.Presentation.Authentication;
 using NoteKeeper.Presentation.Constants;
+using NoteKeeper.Presentation.Transformers;
 using StackExchange.Redis;
 
-namespace NoteKeeper.Presentation;
+namespace NoteKeeper.Presentation.Extensions;
 
 public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection AddApplicationDependencies(this IServiceCollection services, IConfiguration configuration)
+    {
+        var appOptions = configuration.Get<AppOptions>()!;
+
+        services
+            .AddSingleton(Options.Create(appOptions))
+            .AddHttpContextAccessor()
+            .AddHttpClient()
+            .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
+            .AddMemoryCacheEntryOptions()
+            .AddOpenApi(options =>
+                options
+                    .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
+                    .AddDocumentTransformer<DocumentInfoTransformer>())
+            .AddApiControllers()
+            .AddRepositories()
+            .AddServices()
+            .AddDatabase(appOptions)
+            .AddAuth()
+            .AddJsonSerializerOptions()
+            .AddRedisConnectionMultiplexer(appOptions.RedisOptions)
+            .AddExternalServices()
+            .AddCors(appOptions.CorsOptions);
+
+        return services;
+    }
+
     public static IServiceCollection AddApiControllers(this IServiceCollection services) =>
         services
             .AddControllers()
@@ -46,14 +75,15 @@ public static class ServiceCollectionExtensions
             .AddScoped<INoteService, NoteService>()
             .AddScoped<IUserService, UserService>()
             .AddScoped<IAuthService, AuthService>()
+            .AddScoped<ITokenService, TokenService>()
             .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
             .AddScoped<INotionOAuth2Service, NotionOAuth2Service>();
 
-    public static IServiceCollection AddNoteKeeperDbContext(this IServiceCollection services, IConfiguration configuration) =>
+    public static IServiceCollection AddDatabase(this IServiceCollection services, AppOptions appOptions) =>
         services
             .AddDbContext<NoteKeeperDbContext>(options =>
                 options
-                    .UseNpgsql(configuration.GetConnectionString(ConfigurationConstants.PostgreSqlConnectionStringKey))
+                    .UseNpgsql(appOptions.DatabaseConnectionString)
                     .EnableSensitiveDataLogging()
                     .UseSeeding((dbContext, _) => dbContext.SeedDatabase())
                     .UseAsyncSeeding((dbContext, _, _) => Task.FromResult(dbContext.SeedDatabase())));
@@ -87,31 +117,27 @@ public static class ServiceCollectionExtensions
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5d)
             });
 
-    public static IServiceCollection AddRedisConnectionMultiplexer(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddRedisConnectionMultiplexer(this IServiceCollection services, RedisOptions redisOptions)
     {
-        var redisConfigurationDto = configuration
-            .GetSection(ConfigurationConstants.RedisConfigurationSectionKey)
-            .Get<RedisConfigurationDto>()!;
-
-        var redisConnectionString = $"{redisConfigurationDto.Endpoint}:{redisConfigurationDto.Port}";
+        var redisConnectionString = $"{redisOptions.Endpoint}:{redisOptions.Port}";
 
         var redisConfigurationOptions = new ConfigurationOptions
         {
-            Ssl = redisConfigurationDto.UseSsl,
-            User = redisConfigurationDto.User,
-            Password = redisConfigurationDto.Password,
-            KeepAlive = redisConfigurationDto.KeepAlive,
-            ConnectTimeout = redisConfigurationDto.ConnectTimeout,
-            ConnectRetry = redisConfigurationDto.RetryAttempts,
-            ClientName = redisConfigurationDto.ClientName,
-            DefaultDatabase = redisConfigurationDto.Database,
+            Ssl = redisOptions.UseSsl,
+            User = redisOptions.User,
+            Password = redisOptions.Password,
+            KeepAlive = redisOptions.KeepAlive,
+            ConnectTimeout = redisOptions.ConnectTimeout,
+            ConnectRetry = redisOptions.RetryAttempts,
+            ClientName = redisOptions.ClientName,
+            DefaultDatabase = redisOptions.Databases.Default,
             EndPoints = { redisConnectionString },
             AbortOnConnectFail = false
         };
 
         var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConfigurationOptions);
 
-        connectionMultiplexer.GetDatabase().KeyDelete(ApplicationConstants.RedisNotesSubscriptionSetKey);
+        connectionMultiplexer.GetDatabase().KeyDelete(RedisConstants.NotesSubscriptionSetKey);
 
         services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
 
@@ -123,13 +149,11 @@ public static class ServiceCollectionExtensions
             .AddScoped<IRedisPubSubService<NoteDto>, RedisPubSubService<NoteDto>>()
             .AddScoped<IRedisService, RedisService>();
 
-    public static IServiceCollection AddCors(this IServiceCollection services, IConfiguration configuration) =>
+    public static IServiceCollection AddCors(this IServiceCollection services, CorsOptions corsOptions) =>
         services.AddCors(options =>
         {
             options.AddPolicy(CorsConstants.RestrictedCorsPolicy, builder =>
             {
-                var allowedUrl = configuration.GetValue<string>(ConfigurationConstants.BaseUrlKey)!;
-
                 builder
                     .AllowAnyMethod()
                     .WithHeaders(
@@ -144,7 +168,7 @@ public static class ServiceCollectionExtensions
                             return false;
                         }
 
-                        if (origin.StartsWith(allowedUrl, StringComparison.CurrentCultureIgnoreCase))
+                        if (corsOptions.AllowedUrls.Contains(origin, StringComparer.InvariantCultureIgnoreCase))
                         {
                             return true;
                         }
@@ -153,11 +177,12 @@ public static class ServiceCollectionExtensions
                     });
             });
 
-            options.AddPolicy(CorsConstants.AllowAnyOriginCorsPolicy, builder =>
-                builder
-                    .AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader());
+            options
+                .AddPolicy(CorsConstants.AllowAnyOriginCorsPolicy, builder =>
+                    builder
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
         });
 
     private static DbContext SeedDatabase(this DbContext dbContext)

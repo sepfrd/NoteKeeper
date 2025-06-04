@@ -4,7 +4,7 @@ public class GoogleToken : DomainEntity
 {
     public required string AccessToken { get; set; }
 
-    public required DateTime ExpiresAt { get; set; }
+    public required DateTimeOffset ExpiresAt { get; set; }
 
     public required string Scope { get; set; }
 
@@ -18,5 +18,5 @@ public class GoogleToken : DomainEntity
 
     public User? User { get; set; }
 
-    public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+    public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
 }

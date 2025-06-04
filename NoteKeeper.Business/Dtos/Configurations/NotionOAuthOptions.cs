@@ -1,6 +1,6 @@
-namespace NoteKeeper.Business.Dtos.Notion;
+namespace NoteKeeper.Business.Dtos.Configurations;
 
-public record NotionOAuth2ConfigurationDto(
+public record NotionOAuthOptions(
     string RedirectUri,
     string ClientId,
     string AuthUri,

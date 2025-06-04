@@ -27,7 +27,7 @@ public record GoogleTokenResponseDto
     public GoogleToken ToGoogleTokenDomainEntity() => new()
     {
         AccessToken = AccessToken,
-        ExpiresAt = DateTime.UtcNow.AddSeconds(ExpiresIn),
+        ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(ExpiresIn),
         RefreshToken = RefreshToken!,
         Scope = Scope,
         TokenType = TokenType,

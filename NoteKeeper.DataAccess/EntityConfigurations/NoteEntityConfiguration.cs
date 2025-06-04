@@ -1,7 +1,7 @@
-using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NoteKeeper.DataAccess.Entities;
+using NpgsqlTypes;
 
 namespace NoteKeeper.DataAccess.EntityConfigurations;
 
@@ -16,12 +16,12 @@ public class NoteEntityConfiguration : IEntityTypeConfiguration<Note>
 
         builder
             .Property(note => note.Title)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(200);
 
         builder
             .Property(note => note.Content)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(2000);
     }
 }

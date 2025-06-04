@@ -1,48 +1,47 @@
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Configurations;
+using NoteKeeper.Business.Dtos.Responses;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.Business.Utilities;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Enums;
 using NoteKeeper.DataAccess.Interfaces;
-using Org.BouncyCastle.Crypto.Signers;
 
 namespace NoteKeeper.Business.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IConfiguration _configuration;
-    private readonly JsonSerializerOptions _jsonSerializerOptions;
     private readonly IUserRepository _userRepository;
+    private readonly ITokenService _tokenService;
+    private readonly IRedisService _redisService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly AppOptions _appOptions;
 
     public AuthService(
         IUserRepository userRepository,
+        ITokenService tokenService,
+        IRedisService redisService,
         IHttpContextAccessor httpContextAccessor,
-        IConfiguration configuration,
-        JsonSerializerOptions jsonSerializerOptions)
+        IOptions<AppOptions> appOptions)
     {
         _userRepository = userRepository;
+        _tokenService = tokenService;
+        _redisService = redisService;
         _httpContextAccessor = httpContextAccessor;
-        _configuration = configuration;
-        _jsonSerializerOptions = jsonSerializerOptions;
+        _appOptions = appOptions.Value;
     }
 
-    public async Task<ResponseDto<string?>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
+    public async Task<ResponseDto<AuthResponseDto?>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
     {
         if (IsSignedIn())
         {
-            return new ResponseDto<string?>
+            return new ResponseDto<AuthResponseDto?>
             {
                 IsSuccess = false,
                 Message = MessageConstants.AlreadySignedInMessage,
@@ -52,19 +51,11 @@ public class AuthService : IAuthService
 
         var user = await GetByUsernameOrEmailAsync(loginDto.UsernameOrEmail, cancellationToken);
 
-        if (user is null || user.RegistrationType != RegistrationType.Direct)
+        if (user is null ||
+            user.RegistrationType != RegistrationType.Direct ||
+            !RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
         {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = false,
-                Message = MessageConstants.InvalidCredentialsMessage,
-                HttpStatusCode = HttpStatusCode.BadRequest
-            };
-        }
-
-        if (!RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
-        {
-            return new ResponseDto<string?>
+            return new ResponseDto<AuthResponseDto?>
             {
                 IsSuccess = false,
                 Message = MessageConstants.InvalidCredentialsMessage,
@@ -76,7 +67,7 @@ public class AuthService : IAuthService
 
         if (!isPasswordValid)
         {
-            return new ResponseDto<string?>
+            return new ResponseDto<AuthResponseDto?>
             {
                 IsSuccess = false,
                 Message = MessageConstants.InvalidCredentialsMessage,
@@ -84,61 +75,74 @@ public class AuthService : IAuthService
             };
         }
 
-        var jwt = GenerateEd25519Jwt(user);
+        var jwt = _tokenService.GenerateEd25519Jwt(user);
 
-        return new ResponseDto<string?>
+        await _tokenService.InvalidateUserRefreshTokenAsync(user.Id.ToString());
+
+        var refreshToken = await _tokenService.GenerateNewRefreshTokenAsync(user.Id.ToString());
+
+        return new ResponseDto<AuthResponseDto?>
         {
-            Data = jwt,
+            Data = new AuthResponseDto(
+                jwt,
+                refreshToken,
+                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
             IsSuccess = true,
             Message = MessageConstants.SuccessfulLoginMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }
 
-    public bool IsEd25519JwtValid(string token)
+    public async Task<ResponseDto<AuthResponseDto?>> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
-        var tokenSections = token.Split('.');
+        var redisAuthDatabase = _appOptions.RedisOptions.Databases.Auth;
+        var existingRefreshTokenKey = string.Format(RedisConstants.ValidRefreshTokenStringKeyTemplate, refreshToken);
 
-        if (tokenSections.Length != 3)
+        var redisValue = await _redisService.GetDeleteStringAsync(existingRefreshTokenKey, redisAuthDatabase);
+
+        if (redisValue.IsNullOrEmpty)
         {
-            return false;
+            // find if it was valid once
+
+            var invalidRefreshTokenKey = string.Format(RedisConstants.InvalidatedRefreshTokenStringKeyTemplate, refreshToken);
+
+            var invalidRefreshTokenUserId = await _redisService.GetStringAsync(invalidRefreshTokenKey, redisAuthDatabase);
+
+            // if true, invalidate the current refresh token and optionally notify the user.
+
+            if (!invalidRefreshTokenUserId.IsNullOrEmpty)
+            {
+                await _tokenService.InvalidateUserRefreshTokenAsync(invalidRefreshTokenUserId.ToString());
+            }
+
+            return new ResponseDto<AuthResponseDto?>
+            {
+                IsSuccess = false,
+                HttpStatusCode = HttpStatusCode.Unauthorized
+            };
         }
 
-        var header = tokenSections[0];
-        var payload = tokenSections[1];
-        var signature = tokenSections[2];
+        // generate a new JWT, refresh token, invalidate the previous token and save to Redis.
 
-        var message = header + '.' + payload;
+        var userId = (long)redisValue;
+        var user = await _userRepository.GetByIdAsync(userId, null, cancellationToken);
 
-        var messageBytes = Encoding.UTF8.GetBytes(message);
+        var jwt = _tokenService.GenerateEd25519Jwt(user!);
 
-        var signatureBytes = Base64UrlEncoder.DecodeBytes(signature);
+        var newRefreshToken = await _tokenService.GenerateNewRefreshTokenAsync(userId.ToString());
 
-        var jwtConfigurationDto = _configuration.GetSection(ConfigurationConstants.Ed25519JwtConfigurationSectionKey).Get<JwtConfigurationDto>()!;
+        await _tokenService.InvalidateRefreshTokenAsync(refreshToken, userId.ToString());
 
-        var publicKey = CryptographyHelper.LoadPublicKeyFromString(jwtConfigurationDto.PublicKey);
-
-        var verifier = new Ed25519Signer();
-
-        verifier.Init(false, publicKey);
-        verifier.BlockUpdate(messageBytes, 0, messageBytes.Length);
-
-        var isValid = verifier.VerifySignature(signatureBytes);
-
-        return isValid;
-    }
-
-    public ClaimsPrincipal ConvertJwtStringToClaimsPrincipal(string jwtString, string authenticationType)
-    {
-        var handler = new JwtSecurityTokenHandler();
-
-        var jwt = handler.ReadJwtToken(jwtString);
-
-        var claims = jwt.Claims;
-
-        var identity = new ClaimsIdentity(claims, authenticationType);
-
-        return new ClaimsPrincipal(identity);
+        return new ResponseDto<AuthResponseDto?>
+        {
+            Data = new AuthResponseDto(
+                jwt,
+                newRefreshToken,
+                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
+            IsSuccess = true,
+            Message = MessageConstants.SuccessfulTokenRefreshMessage,
+            HttpStatusCode = HttpStatusCode.OK
+        };
     }
 
     public async Task<User?> GetSignedInUserAsync(
@@ -155,64 +159,6 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByUuidAsync(Guid.Parse(userUuid), include, cancellationToken);
 
         return user;
-    }
-
-    public string GenerateEd25519Jwt(User user)
-    {
-        var jwtConfigurationDto = _configuration.GetSection(ConfigurationConstants.Ed25519JwtConfigurationSectionKey).Get<JwtConfigurationDto>()!;
-
-        var utcNowUnixTime = DateTimeOffset
-            .UtcNow
-            .ToUnixTimeSeconds()
-            .ToString(CultureInfo.InvariantCulture);
-
-        var expirationDateUnixTime = DateTimeOffset
-            .UtcNow
-            .AddSeconds(jwtConfigurationDto.TokenLifetimeInSeconds)
-            .ToUnixTimeSeconds()
-            .ToString(CultureInfo.InvariantCulture);
-
-        var claims = new Claim[]
-        {
-            new(JwtRegisteredClaimNames.Iss, jwtConfigurationDto.Issuer),
-            new(JwtRegisteredClaimNames.Aud, jwtConfigurationDto.Audience),
-            new(JwtRegisteredClaimNames.Iat, utcNowUnixTime, ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Nbf, utcNowUnixTime, ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Exp, expirationDateUnixTime, ClaimValueTypes.Integer64),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new(JwtExtendedConstants.JwtUsernameClaimType, user.Username),
-            new(JwtExtendedConstants.JwtUuidClaimType, user.Uuid.ToString())
-        };
-
-        var jwtHeader = new EdDsaJwtHeader();
-
-        var payload = new JwtPayload(claims);
-
-        var headerJson = JsonSerializer.Serialize(jwtHeader, _jsonSerializerOptions);
-        var payloadJson = JsonSerializer.Serialize(payload, _jsonSerializerOptions);
-
-        var encodedHeader = Base64UrlEncoder.Encode(headerJson);
-        var encodedPayload = Base64UrlEncoder.Encode(payloadJson);
-
-        var signingInput = encodedHeader + '.' + encodedPayload;
-
-        var signer = new Ed25519Signer();
-
-        var messageBytes = Encoding.UTF8.GetBytes(signingInput);
-
-        var privateKey = CryptographyHelper.LoadPrivateKeyFromString(jwtConfigurationDto.PrivateKey);
-
-        signer.Init(true, privateKey);
-        signer.BlockUpdate(messageBytes, 0, messageBytes.Length);
-
-        var signatureBytes = signer.GenerateSignature();
-
-        var signature = Base64UrlEncoder.Encode(signatureBytes);
-
-        var jwt = signingInput + '.' + signature;
-
-        return jwt;
     }
 
     private bool IsSignedIn() =>

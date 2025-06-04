@@ -1,7 +1,7 @@
-using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NoteKeeper.DataAccess.Entities;
+using NpgsqlTypes;
 
 namespace NoteKeeper.DataAccess.EntityConfigurations;
 
@@ -16,52 +16,52 @@ public class NotionTokenEntityConfiguration : IEntityTypeConfiguration<NotionTok
 
         builder
             .Property(notionToken => notionToken.AccessToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(5000);
 
         builder
             .Property(notionToken => notionToken.TokenType)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(notionToken => notionToken.BotId)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(notionToken => notionToken.WorkspaceName)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(150);
 
         builder
             .Property(notionToken => notionToken.WorkspaceIconUrl)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(250);
 
         builder
             .Property(notionToken => notionToken.WorkspaceId)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(notionToken => notionToken.NotionId)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(notionToken => notionToken.Name)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(notionToken => notionToken.AvatarUrl)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(250);
 
         builder
             .Property(notionToken => notionToken.NotionEmail)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(320);
 
         builder.Ignore(notionToken => notionToken.IsExpired);

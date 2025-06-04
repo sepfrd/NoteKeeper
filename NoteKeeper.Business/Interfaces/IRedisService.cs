@@ -1,10 +1,20 @@
+using StackExchange.Redis;
+
 namespace NoteKeeper.Business.Interfaces;
 
 public interface IRedisService
 {
-    Task<bool> ValueExistsInRedisSetAsync(string redisSetName, string value);
+    Task<RedisValue> GetDeleteStringAsync(string key, int database = 0);
 
-    Task<bool> AddValueToRedisSetAsync(string redisSetName, string value);
+    Task<RedisValue> GetStringAsync(string key, int database = 0);
 
-    Task<bool> RemoveValueFromRedisSetAsync(string redisSetName, string value);
+    Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null, int database = 0);
+
+    Task<bool> DeleteKeyAsync(string key, int database = 0);
+
+    Task<bool> ValueExistsInSetAsync(string redisSetName, string value, int database = 0);
+
+    Task<bool> AddValueToSetAsync(string redisSetName, string value, int database = 0);
+
+    Task<bool> RemoveValueFromSetAsync(string redisSetName, string value, int database = 0);
 }

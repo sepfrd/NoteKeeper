@@ -6,7 +6,6 @@ namespace NoteKeeper.DataAccess.EntityConfigurations;
 
 public class DomainEntityConfiguration : IEntityTypeConfiguration<DomainEntity>
 {
-
     public void Configure(EntityTypeBuilder<DomainEntity> builder)
     {
         builder.UseTpcMappingStrategy();

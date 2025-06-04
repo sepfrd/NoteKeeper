@@ -5,10 +5,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Configurations;
 using NoteKeeper.Business.Dtos.Google;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.DataAccess.Entities;
@@ -18,30 +19,33 @@ namespace NoteKeeper.Business.Services.OAuth.V2;
 
 public class GoogleOAuth2Service : IGoogleOAuth2Service
 {
-    private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
     private readonly IRepositoryBase<GoogleToken> _googleTokenRepository;
     private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
+    private readonly ITokenService _tokenService;
+    private readonly GoogleOAuthOptions _googleOAuthOptions;
 
     public GoogleOAuth2Service(
-        IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
         IRepositoryBase<GoogleToken> googleTokenRepository,
         IUserRepository userRepository,
-        IAuthService authService)
+        IAuthService authService,
+        ITokenService tokenService,
+        IOptions<AppOptions> appOptions)
     {
-        _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _memoryCache = memoryCache;
         _memoryCacheEntryOptions = memoryCacheEntryOptions;
         _googleTokenRepository = googleTokenRepository;
         _userRepository = userRepository;
         _authService = authService;
+        _tokenService = tokenService;
+        _googleOAuthOptions = appOptions.Value.GoogleOAuthOptions;
     }
 
     public async Task<ResponseDto<string?>> AuthenticateWithGoogleAsync(CancellationToken cancellationToken = default)
@@ -76,17 +80,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         var googleTokenResponseDto = await GoogleExchangeAuthorizationCodeForTokensAsync(requestDto.Code, cancellationToken);
 
-        if (googleTokenResponseDto is null)
-        {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = false,
-                Message = MessageConstants.GoogleOidcFailureMessage,
-                HttpStatusCode = HttpStatusCode.InternalServerError
-            };
-        }
-
-        if (googleTokenResponseDto.IdToken is null)
+        if (googleTokenResponseDto?.IdToken is null)
         {
             return new ResponseDto<string?>
             {
@@ -151,7 +145,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
                 };
             }
 
-            var newUserJwt = _authService.GenerateEd25519Jwt(createdUser);
+            var newUserJwt = _tokenService.GenerateEd25519Jwt(createdUser);
 
             var signupMessage = string.Format(
                 CultureInfo.InvariantCulture,
@@ -172,7 +166,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         user.GoogleToken!.AccessToken = googleTokenResponseDto.AccessToken;
         user.GoogleToken.RefreshToken = googleTokenResponseDto.RefreshToken ?? user.GoogleToken.RefreshToken;
         user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
-        user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        user.GoogleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
         user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
         user.GoogleToken.Scope = googleTokenResponseDto.Scope;
         user.GoogleToken.MarkAsUpdated();
@@ -190,7 +184,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             };
         }
 
-        var existingUserJwt = _authService.GenerateEd25519Jwt(user);
+        var existingUserJwt = _tokenService.GenerateEd25519Jwt(user);
 
         var signinMessage = string.Format(
             CultureInfo.InvariantCulture,
@@ -295,20 +289,16 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             };
         }
 
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
-
         var httpClient = _httpClientFactory.CreateClient();
 
         httpClient.Timeout = TimeSpan.FromSeconds(5d);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
+        var request = new HttpRequestMessage(HttpMethod.Post, _googleOAuthOptions.TokenUri);
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
-            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
+            new(CustomOAuthConstants.ClientIdParameterName, _googleOAuthOptions.ClientId),
+            new(CustomOAuthConstants.ClientSecretParameterName, _googleOAuthOptions.ClientSecret),
             new(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.RefreshTokenGrantType),
             new(CustomOAuthConstants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
         ];
@@ -345,7 +335,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         user.GoogleToken.Scope = googleTokenResponseDto.Scope;
         user.GoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
-        user.GoogleToken.ExpiresAt = DateTime.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        user.GoogleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
         user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
         user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
         user.GoogleToken.MarkAsUpdated();
@@ -374,22 +364,18 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
     private async Task<GoogleTokenResponseDto?> GoogleExchangeAuthorizationCodeForTokensAsync(string code, CancellationToken cancellationToken = default)
     {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
-
         var httpClient = _httpClientFactory.CreateClient();
 
         httpClient.Timeout = TimeSpan.FromSeconds(5d);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, googleOAuthConfigurationDto.TokenUri);
+        var request = new HttpRequestMessage(HttpMethod.Post, _googleOAuthOptions.TokenUri);
 
         IEnumerable<KeyValuePair<string, string>> nameValueCollection =
         [
             new(CustomOAuthConstants.CodeParameterName, code),
-            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
-            new(CustomOAuthConstants.ClientSecretParameterName, googleOAuthConfigurationDto.ClientSecret),
-            new(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
+            new(CustomOAuthConstants.ClientIdParameterName, _googleOAuthOptions.ClientId),
+            new(CustomOAuthConstants.ClientSecretParameterName, _googleOAuthOptions.ClientSecret),
+            new(CustomOAuthConstants.RedirectUriParameterName, _googleOAuthOptions.RedirectUri),
             new(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.AuthorizationCodeGrantType)
         ];
 
@@ -413,10 +399,6 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
     private ResponseDto<string?> GoogleGenerateOAuth2RequestUrl()
     {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
-
         var state = Guid.NewGuid().ToString();
 
         StoreStateAndUsernameInMemoryCache(state, CustomOAuthConstants.GoogleSignupPendingUsername);
@@ -430,12 +412,12 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             new(CustomOAuthConstants.IncludeGrantedScopesParameterName, true.ToString().ToLowerInvariant()),
             new(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
             new(CustomOAuthConstants.StateParameterName, state),
-            new(CustomOAuthConstants.RedirectUriParameterName, googleOAuthConfigurationDto.RedirectUri),
-            new(CustomOAuthConstants.ClientIdParameterName, googleOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.RedirectUriParameterName, _googleOAuthOptions.RedirectUri),
+            new(CustomOAuthConstants.ClientIdParameterName, _googleOAuthOptions.ClientId),
             new(CustomOAuthConstants.PromptParameterName, CustomOAuthConstants.ConsentPrompt)
         ];
 
-        var finalUrl = QueryHelpers.AddQueryString(googleOAuthConfigurationDto.AuthUri, queryParameters);
+        var finalUrl = QueryHelpers.AddQueryString(_googleOAuthOptions.AuthUri, queryParameters);
 
         return new ResponseDto<string?>
         {
@@ -447,14 +429,10 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
     private async Task<ResponseDto<string?>> GoogleRevokeTokenAsync(string token, CancellationToken cancellationToken = default)
     {
-        var googleOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.GoogleOAuth2ConfigurationSectionKey)
-            .Get<GoogleOAuth2ConfigurationDto>()!;
-
         var httpClient = _httpClientFactory.CreateClient();
 
         var requestUri = QueryHelpers.AddQueryString(
-            googleOAuthConfigurationDto.RevokeUri,
+            _googleOAuthOptions.RevokeUri,
             CustomOAuthConstants.TokenParameterName,
             token);
 

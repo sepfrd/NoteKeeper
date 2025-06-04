@@ -7,9 +7,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using NoteKeeper.Business.Constants;
 using NoteKeeper.Business.Dtos;
+using NoteKeeper.Business.Dtos.Configurations;
 using NoteKeeper.Business.Dtos.Notion;
 using NoteKeeper.Business.Interfaces;
 using NoteKeeper.DataAccess.Entities;
@@ -19,32 +20,32 @@ namespace NoteKeeper.Business.Services.OAuth.V2;
 
 public class NotionOAuth2Service : INotionOAuth2Service
 {
-    private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
     private readonly IRepositoryBase<NotionToken> _notionTokenRepository;
     private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
-    private readonly string SuccessMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthSuccessMessageTemplate, "Notion");
-    private readonly string FailureMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthFailureMessageTemplate, "Notion");
+    private readonly NotionOAuthOptions _notionOAuthOptions;
+    private readonly string _successMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthSuccessMessageTemplate, "Notion");
+    private readonly string _failureMessage = string.Format(CultureInfo.InvariantCulture, MessageConstants.OAuthFailureMessageTemplate, "Notion");
 
     public NotionOAuth2Service(
-        IConfiguration configuration,
         IHttpClientFactory httpClientFactory,
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
         IRepositoryBase<NotionToken> notionTokenRepository,
         IUserRepository userRepository,
-        IAuthService authService)
+        IAuthService authService,
+        IOptions<AppOptions> appOptions)
     {
-        _configuration = configuration;
         _httpClientFactory = httpClientFactory;
         _memoryCache = memoryCache;
         _memoryCacheEntryOptions = memoryCacheEntryOptions;
         _notionTokenRepository = notionTokenRepository;
         _userRepository = userRepository;
         _authService = authService;
+        _notionOAuthOptions = appOptions.Value.NotionOAuthOptions;
     }
 
     public async Task<ResponseDto<string?>> UseNotionOAuth2Async(CancellationToken cancellationToken = default)
@@ -70,31 +71,27 @@ public class NotionOAuth2Service : INotionOAuth2Service
         return new ResponseDto<string?>
         {
             IsSuccess = true,
-            Message = SuccessMessage,
+            Message = _successMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }
 
     private ResponseDto<string?> NotionGenerateOAuth2RequestUrl(User user)
     {
-        var notionOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.NotionOAuth2ConfigurationSectionKey)
-            .Get<NotionOAuth2ConfigurationDto>()!;
-
         var state = Guid.NewGuid().ToString();
 
         StoreStateAndUserIdInMemoryCache(state, user.Id);
 
         IEnumerable<KeyValuePair<string, string?>> queryParameters =
         [
-            new(CustomOAuthConstants.ClientIdParameterName, notionOAuthConfigurationDto.ClientId),
+            new(CustomOAuthConstants.ClientIdParameterName, _notionOAuthOptions.ClientId),
             new(CustomOAuthConstants.ResponseTypeParameterName, CustomOAuthConstants.CodeResponseType),
             new(CustomOAuthConstants.NotionOwnerParameterName, CustomOAuthConstants.NotionUserOwnerType),
-            new(CustomOAuthConstants.RedirectUriParameterName, notionOAuthConfigurationDto.RedirectUri),
+            new(CustomOAuthConstants.RedirectUriParameterName, _notionOAuthOptions.RedirectUri),
             new(CustomOAuthConstants.StateParameterName, state)
         ];
 
-        var finalUrl = QueryHelpers.AddQueryString(notionOAuthConfigurationDto.AuthUri, queryParameters);
+        var finalUrl = QueryHelpers.AddQueryString(_notionOAuthOptions.AuthUri, queryParameters);
 
         return new ResponseDto<string?>
         {
@@ -108,29 +105,25 @@ public class NotionOAuth2Service : INotionOAuth2Service
         NotionExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto,
         CancellationToken cancellationToken = default)
     {
-        var notionOAuthConfigurationDto = _configuration
-            .GetSection(ConfigurationConstants.NotionOAuth2ConfigurationSectionKey)
-            .Get<NotionOAuth2ConfigurationDto>()!;
-
         var httpClient = _httpClientFactory.CreateClient();
 
         httpClient.Timeout = TimeSpan.FromSeconds(5d);
         httpClient.DefaultRequestHeaders.Clear();
 
-        var request = new HttpRequestMessage(HttpMethod.Post, notionOAuthConfigurationDto.TokenUri);
+        var request = new HttpRequestMessage(HttpMethod.Post, _notionOAuthOptions.TokenUri);
 
         var requestBody = new NotionTokenRequestBodyDto
         {
             GrantType = CustomOAuthConstants.AuthorizationCodeGrantType,
             Code = exchangeCodeForTokenRequestDto.Code,
-            RedirectUri = notionOAuthConfigurationDto.RedirectUri
+            RedirectUri = _notionOAuthOptions.RedirectUri
         };
 
         var jsonMediaType = MediaTypeHeaderValue.Parse(MediaTypeNames.Application.Json);
 
         var content = new StringContent(JsonSerializer.Serialize(requestBody), mediaType: jsonMediaType);
 
-        var authenticationString = $"{notionOAuthConfigurationDto.ClientId}:{notionOAuthConfigurationDto.ClientSecret}";
+        var authenticationString = $"{_notionOAuthOptions.ClientId}:{_notionOAuthOptions.ClientSecret}";
 
         var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.ASCII.GetBytes(authenticationString));
 
@@ -145,7 +138,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
+                Message = _failureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -159,7 +152,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
+                Message = _failureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -174,7 +167,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return new ResponseDto<string?>
             {
                 IsSuccess = false,
-                Message = FailureMessage,
+                Message = _failureMessage,
                 HttpStatusCode = HttpStatusCode.InternalServerError
             };
         }
@@ -182,7 +175,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         return new ResponseDto<string?>
         {
             IsSuccess = true,
-            Message = SuccessMessage,
+            Message = _successMessage,
             HttpStatusCode = HttpStatusCode.OK
         };
     }

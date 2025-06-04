@@ -1,6 +1,6 @@
-namespace NoteKeeper.Business.Dtos;
+namespace NoteKeeper.Business.Dtos.Configurations;
 
-public record RedisConfigurationDto
+public record RedisOptions
 {
     public required string Endpoint { get; set; }
 
@@ -10,7 +10,7 @@ public record RedisConfigurationDto
 
     public required string Password { get; set; }
 
-    public required int Database { get; set; }
+    public required RedisDatabases Databases { get; set; }
 
     public required int ConnectTimeout { get; set; }
 

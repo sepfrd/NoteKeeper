@@ -26,6 +26,7 @@ public static class MessageConstants
 
     // ---------------------------- OK (200) Messages ----------------------------
     public const string SuccessfulLoginMessage = "Successfully authenticated.";
+    public const string SuccessfulTokenRefreshMessage = "Successfully refreshed access token.";
     public const string SuccessfulUpdateMessage = "Successfully updated {0} entity.";
     public const string SuccessfulDeleteMessage = "Successfully deleted {0} entity.";
     public const string GoogleTokenRevocationSuccessMessage = "Google token(s) revocation was successful. You have successfully revoked access.";
@@ -35,6 +36,4 @@ public static class MessageConstants
     public const string OAuthSuccessMessageTemplate = "{0} OAuth authentication was successful. You have successfully authorized access.";
 
     // ---------------------------- Exception Messages ----------------------------
-
-    public const string SwaggerAuthorizationMessage = "Please enter only the token (without Bearer)";
 }

@@ -9,16 +9,16 @@ namespace NoteKeeper.Presentation.Authentication;
 
 public class Ed25519JwtAuthenticationHandler : AuthenticationHandler<Ed25519JwtAuthenticationSchemeOptions>
 {
-    private readonly IAuthService _authService;
+    private readonly ITokenService _tokenService;
 
     public Ed25519JwtAuthenticationHandler(
         IOptionsMonitor<Ed25519JwtAuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IAuthService authService)
+        ITokenService tokenService)
         : base(options, logger, encoder)
     {
-        _authService = authService;
+        _tokenService = tokenService;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -37,7 +37,7 @@ public class Ed25519JwtAuthenticationHandler : AuthenticationHandler<Ed25519JwtA
             ? authorizationHeader.Replace(JwtBearerDefaults.AuthenticationScheme, string.Empty).Trim()
             : authorizationHeader.Trim();
 
-        var isTokenValid = _authService.IsEd25519JwtValid(token);
+        var isTokenValid = _tokenService.IsEd25519JwtValid(token);
 
         if (!isTokenValid)
         {
@@ -47,7 +47,7 @@ public class Ed25519JwtAuthenticationHandler : AuthenticationHandler<Ed25519JwtA
                         .ToString(CultureInfo.InvariantCulture)));
         }
 
-        var claimsPrincipal = _authService.ConvertJwtStringToClaimsPrincipal(token, Scheme.Name);
+        var claimsPrincipal = _tokenService.ConvertJwtStringToClaimsPrincipal(token, Scheme.Name);
 
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(claimsPrincipal, Scheme.Name)));
     }

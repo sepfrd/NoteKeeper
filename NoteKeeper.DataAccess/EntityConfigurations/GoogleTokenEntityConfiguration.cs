@@ -1,7 +1,7 @@
-using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NoteKeeper.DataAccess.Entities;
+using NpgsqlTypes;
 
 namespace NoteKeeper.DataAccess.EntityConfigurations;
 
@@ -16,27 +16,27 @@ public class GoogleTokenEntityConfiguration : IEntityTypeConfiguration<GoogleTok
 
         builder
             .Property(googleToken => googleToken.AccessToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(5000);
 
         builder
             .Property(googleToken => googleToken.RefreshToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(1000);
 
         builder
             .Property(googleToken => googleToken.Scope)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(1000);
 
         builder
             .Property(googleToken => googleToken.TokenType)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(100);
 
         builder
             .Property(googleToken => googleToken.IdToken)
-            .HasColumnType(SqlDbType.VarChar.ToString())
+            .HasColumnType(nameof(NpgsqlDbType.Varchar))
             .HasMaxLength(5000);
 
         builder.Ignore(googleToken => googleToken.IsExpired);

@@ -1,40 +1,16 @@
-using Microsoft.EntityFrameworkCore;
-using NoteKeeper.DataAccess;
-using NoteKeeper.Presentation;
 using NoteKeeper.Presentation.Constants;
-using NoteKeeper.Presentation.Transformers;
+using NoteKeeper.Presentation.Extensions;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 try
 {
-    builder.Services
-        .AddHttpContextAccessor()
-        .AddHttpClient()
-        .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
-        .AddMemoryCacheEntryOptions()
-        .AddOpenApi(options =>
-            options
-                .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
-                .AddDocumentTransformer<DocumentInfoTransformer>())
-        .AddApiControllers()
-        .AddRepositories()
-        .AddServices()
-        .AddNoteKeeperDbContext(builder.Configuration)
-        .AddAuth()
-        .AddJsonSerializerOptions()
-        .AddRedisConnectionMultiplexer(builder.Configuration)
-        .AddExternalServices()
-        .AddCors(builder.Configuration);
+    builder.Services.AddApplicationDependencies(builder.Configuration);
 
     var app = builder.Build();
 
-    await using var scope = app.Services.CreateAsyncScope();
-
-    await using var context = scope.ServiceProvider.GetRequiredService<NoteKeeperDbContext>();
-
-    await context.Database.MigrateAsync();
+    await app.InitializeDatabaseAsync();
 
     app.MapOpenApi();
     app.MapScalarApiReference(options =>

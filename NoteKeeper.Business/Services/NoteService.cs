@@ -192,8 +192,8 @@ public class NoteService : INoteService
         noteDto.UserUuid = user.Uuid;
 
         var isSubscribed = await _redisService
-            .ValueExistsInRedisSetAsync(
-                ApplicationConstants.RedisNotesSubscriptionSetKey,
+            .ValueExistsInSetAsync(
+                RedisConstants.NotesSubscriptionSetKey,
                 noteUuid.ToString());
 
         if (isSubscribed)
@@ -267,7 +267,7 @@ public class NoteService : INoteService
 
         await _redisPubSubService.SubscribeToChannelAsync(noteUuidString, SubscriptionHandler);
 
-        await _redisService.AddValueToRedisSetAsync(ApplicationConstants.RedisNotesSubscriptionSetKey, noteUuidString);
+        await _redisService.AddValueToSetAsync(RedisConstants.NotesSubscriptionSetKey, noteUuidString);
     }
 
     public async Task UnsubscribeFromNoteChangesAsync(Guid noteUuid)
@@ -276,7 +276,7 @@ public class NoteService : INoteService
 
         await _redisPubSubService.UnsubscribeFromChannelAsync(noteUuidString, SubscriptionHandler);
 
-        await _redisService.RemoveValueFromRedisSetAsync(ApplicationConstants.RedisNotesSubscriptionSetKey, noteUuidString);
+        await _redisService.RemoveValueFromSetAsync(RedisConstants.NotesSubscriptionSetKey, noteUuidString);
     }
 
     private static void SubscriptionHandler(RedisChannel redisChannel, RedisValue redisValue)

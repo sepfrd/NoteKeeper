@@ -9,6 +9,7 @@ namespace NoteKeeper.Presentation.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
+    private const string RefreshTokenCookieKey = "refresh_token";
     private readonly IAuthService _authService;
 
     public AuthController(IAuthService authService) =>
@@ -20,7 +21,55 @@ public class AuthController : ControllerBase
     {
         var result = await _authService.LoginAsync(loginDto, cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        if (result.IsSuccess)
+        {
+            Response.Cookies.Append(RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = result.Data.RefreshTokenExpiresAt
+            });
+        }
+
+        return StatusCode((int)result.HttpStatusCode, new ResponseDto<string?>
+        {
+            Data = result.Data?.Jwt,
+            IsSuccess = result.IsSuccess,
+            Message = result.Message,
+            HttpStatusCode = result.HttpStatusCode
+        });
+    }
+
+    [HttpPost]
+    [Route("refresh-token")]
+    public async Task<IActionResult> RefreshTokenAsync(CancellationToken cancellationToken)
+    {
+        if (!Request.Cookies.TryGetValue(RefreshTokenCookieKey, out var refreshToken))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            Response.Cookies.Append(RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Expires = result.Data.RefreshTokenExpiresAt
+            });
+        }
+
+        return StatusCode((int)result.HttpStatusCode, new ResponseDto<string?>
+        {
+            Data = result.Data?.Jwt,
+            IsSuccess = result.IsSuccess,
+            Message = result.Message,
+            HttpStatusCode = result.HttpStatusCode
+        });
     }
 
     [HttpOptions]

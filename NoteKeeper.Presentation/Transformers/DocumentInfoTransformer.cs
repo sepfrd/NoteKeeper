@@ -1,25 +1,24 @@
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
-using NoteKeeper.Business.Constants;
+using NoteKeeper.Business.Dtos.Configurations;
 
 namespace NoteKeeper.Presentation.Transformers;
 
 public class DocumentInfoTransformer : IOpenApiDocumentTransformer
 {
-    private readonly IConfiguration _configuration;
+    private readonly AppOptions _appOptions;
 
-    public DocumentInfoTransformer(IConfiguration configuration)
+    public DocumentInfoTransformer(IOptions<AppOptions> appOptions)
     {
-        _configuration = configuration;
+        _appOptions = appOptions.Value;
     }
 
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
-        var baseUrl = _configuration.GetValue<string>(ConfigurationConstants.BaseUrlKey);
-
         document.Servers.Add(new OpenApiServer
         {
-            Url = baseUrl
+            Url = _appOptions.BaseApiUrl
         });
 
         return Task.CompletedTask;

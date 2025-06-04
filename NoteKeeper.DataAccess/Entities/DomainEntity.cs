@@ -4,17 +4,17 @@ public abstract class DomainEntity
 {
     protected DomainEntity()
     {
-        CreatedAt = UpdatedAt = DateTime.UtcNow;
-        Uuid = Guid.NewGuid();
+        CreatedAt = UpdatedAt = DateTimeOffset.UtcNow;
+        Uuid = Guid.CreateVersion7();
     }
 
     public long Id { get; set; }
 
     public Guid Uuid { get; init; }
 
-    public DateTime CreatedAt { get; private init; }
+    public DateTimeOffset CreatedAt { get; private init; }
 
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 
-    public void MarkAsUpdated() => UpdatedAt = DateTime.UtcNow;
+    public void MarkAsUpdated() => UpdatedAt = DateTimeOffset.UtcNow;
 }
