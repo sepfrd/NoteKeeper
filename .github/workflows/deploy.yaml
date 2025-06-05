@@ -23,7 +23,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ secrets.VPS_HOST_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             cd /root/Projects/NoteKeeper
-            git pull origin main
+            git switch main
+            git pull
             docker compose down
             docker image rm note-keeper:latest
             docker compose --file docker-compose.yaml --env-file .env up --detach --build
