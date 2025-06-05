@@ -26,5 +26,5 @@ jobs:
             git pull origin main
             docker compose down
             docker image rm note-keeper:latest
-            docker compose --file docker-compose.yaml --env-file up --detach --build
+            docker compose --file docker-compose.yaml --env-file up -d --build
           EOF
