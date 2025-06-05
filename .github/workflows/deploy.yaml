@@ -1,0 +1,29 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy .NET app to my VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Deploy via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no -p ${{ secrets.VPS_HOST_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /root/Projects/NoteKeeper
+            git pull origin main
+            docker compose down
+            docker image rm note-keeper:latest
+            docker compose --file docker-compose.yaml --env-file up --detach --build
+          EOF
