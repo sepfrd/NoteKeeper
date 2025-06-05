@@ -62,6 +62,15 @@ public class AuthController : ControllerBase
                 Expires = result.Data.RefreshTokenExpiresAt
             });
         }
+        else
+        {
+            Response.Cookies.Delete(RefreshTokenCookieKey, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+        }
 
         return StatusCode((int)result.HttpStatusCode, new ResponseDto<string?>
         {
