@@ -7,6 +7,7 @@ using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.DomainEntities;
 using NoteKeeper.Business.Dtos.Requests;
 using NoteKeeper.Business.Interfaces;
+using NoteKeeper.DataAccess.Common;
 using NoteKeeper.DataAccess.Entities;
 using NoteKeeper.DataAccess.Interfaces;
 using StackExchange.Redis;
@@ -65,33 +66,30 @@ public class NoteService : INoteService
         };
     }
 
-    public async Task<ResponseDto<List<NoteDto>>> GetAllAsync(
+    public async Task<ResponseDto<PaginatedResult<NoteDto>>> GetAllAsync(
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var user = await _authService.GetSignedInUserAsync(
-            users => users.Include(user => user.Notes),
-            cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(null, cancellationToken);
 
         if (user is null)
         {
-            return new ResponseDto<List<NoteDto>>
+            return new ResponseDto<PaginatedResult<NoteDto>>
             {
                 IsSuccess = false,
                 HttpStatusCode = HttpStatusCode.Unauthorized
             };
         }
 
-        var skipCount = (pageNumber - 1) * pageSize;
+        var paginatedResult = await _noteRepository.GetAllAsync(
+            pageNumber,
+            pageSize,
+            note => note.UserId == user.Id,
+            null,
+            cancellationToken);
 
-        var notes = user
-            .Notes
-            .OrderByDescending(note => note.Id)
-            .Skip(skipCount)
-            .Take(pageSize).ToList();
-
-        var response = notes.Select(note =>
+        var noteDtos = paginatedResult.Items.Select(note =>
             {
                 var noteDto = NoteDto.FromNoteDomainEntity(note);
 
@@ -101,9 +99,13 @@ public class NoteService : INoteService
             })
             .ToList();
 
-        return new ResponseDto<List<NoteDto>>
+        return new ResponseDto<PaginatedResult<NoteDto>>
         {
-            Data = response,
+            Data = new PaginatedResult<NoteDto>(
+                pageNumber,
+                pageSize,
+                paginatedResult.TotalCount,
+                noteDtos),
             IsSuccess = true,
             HttpStatusCode = HttpStatusCode.OK
         };

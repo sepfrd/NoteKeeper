@@ -1,25 +1,28 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Query;
+using NoteKeeper.DataAccess.Common;
 using NoteKeeper.DataAccess.Entities;
 
 namespace NoteKeeper.DataAccess.Interfaces;
 
-public interface IRepositoryBase<T> where T : DomainEntity
+public interface IRepositoryBase<TEntity> where TEntity : DomainEntity
 {
-    Task<T> CreateAsync(T entity, CancellationToken cancellationToken = default);
+    Task<TEntity> CreateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-    Task<List<T>> GetAllAsync(
+    Task<long> GetCountAsync(Expression<Func<TEntity, bool>>? filterExpression = null, CancellationToken cancellationToken = default);
+
+    Task<PaginatedResult<TEntity>> GetAllAsync(
         int pageNumber = 1,
         int pageSize = 10,
-        Expression<Func<T, bool>>? filterExpression = null,
-        Func<IQueryable<T>, IIncludableQueryable<T, object?>>? includeExpression = null,
+        Expression<Func<TEntity, bool>>? filterExpression = null,
+        Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? includeExpression = null,
         CancellationToken cancellationToken = default);
 
-    Task<T?> GetByIdAsync(long id, Func<IQueryable<T>, IIncludableQueryable<T, object?>>? include = null, CancellationToken cancellationToken = default);
+    Task<TEntity?> GetByIdAsync(long id, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? include = null, CancellationToken cancellationToken = default);
 
-    Task<T?> GetByUuidAsync(Guid uuid, Func<IQueryable<T>, IIncludableQueryable<T, object?>>? include = null, CancellationToken cancellationToken = default);
+    Task<TEntity?> GetByUuidAsync(Guid uuid, Func<IQueryable<TEntity>, IIncludableQueryable<TEntity, object?>>? include = null, CancellationToken cancellationToken = default);
 
-    T Delete(T entity);
+    TEntity Delete(TEntity entity);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

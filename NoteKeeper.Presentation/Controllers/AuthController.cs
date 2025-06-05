@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
                 Expires = result.Data.RefreshTokenExpiresAt
             });
         }
@@ -58,7 +58,7 @@ public class AuthController : ControllerBase
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
                 Expires = result.Data.RefreshTokenExpiresAt
             });
         }

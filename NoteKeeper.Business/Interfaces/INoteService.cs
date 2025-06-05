@@ -1,6 +1,8 @@
 using NoteKeeper.Business.Dtos;
 using NoteKeeper.Business.Dtos.DomainEntities;
 using NoteKeeper.Business.Dtos.Requests;
+using NoteKeeper.Business.Dtos.Responses;
+using NoteKeeper.DataAccess.Common;
 
 namespace NoteKeeper.Business.Interfaces;
 
@@ -8,7 +10,7 @@ public interface INoteService
 {
     Task<ResponseDto<NoteDto?>> CreateAsync(CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken = default);
 
-    Task<ResponseDto<List<NoteDto>>> GetAllAsync(
+    Task<ResponseDto<PaginatedResult<NoteDto>>> GetAllAsync(
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken = default);
