@@ -12,8 +12,4 @@ public interface ITokenService
     string GenerateEd25519Jwt(User user);
 
     Task<string> GenerateNewRefreshTokenAsync(string userIdString);
-
-    Task InvalidateRefreshTokenAsync(string refreshToken, string userIdString);
-
-    Task InvalidateUserRefreshTokenAsync(string userIdString);
 }

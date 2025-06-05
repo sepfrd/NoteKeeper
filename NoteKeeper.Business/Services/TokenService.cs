@@ -133,10 +133,23 @@ public class TokenService : ITokenService
 
     public async Task<string> GenerateNewRefreshTokenAsync(string userIdString)
     {
+        var existingReverseRefreshTokenKey = string.Format(RedisConstants.ReverseRefreshTokenStringKeyTemplate, userIdString);
+
+        var existingReverseRefreshToken = await _redisService.GetStringAsync(
+            existingReverseRefreshTokenKey,
+            _appOptions.RedisOptions.Databases.Auth);
+
+        if (!existingReverseRefreshToken.IsNullOrEmpty)
+        {
+            var existingRefreshTokenKey = string.Format(RedisConstants.RefreshTokenStringKeyTemplate, existingReverseRefreshToken);
+
+            await _redisService.DeleteKeyAsync(existingRefreshTokenKey, _appOptions.RedisOptions.Databases.Auth);
+        }
+
         var refreshToken = Guid.CreateVersion7().ToString();
 
-        var redisKey = string.Format(RedisConstants.ValidRefreshTokenStringKeyTemplate, refreshToken);
-        var reverseRedisKey = string.Format(RedisConstants.ReverseValidRefreshTokenStringKeyTemplate, userIdString);
+        var redisKey = string.Format(RedisConstants.RefreshTokenStringKeyTemplate, refreshToken);
+        var reverseRedisKey = string.Format(RedisConstants.ReverseRefreshTokenStringKeyTemplate, userIdString);
 
         var refreshTokenLifeTimeInMinutes = _appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes;
         var redisAuthDatabase = _appOptions.RedisOptions.Databases.Auth;
@@ -154,38 +167,5 @@ public class TokenService : ITokenService
             redisAuthDatabase);
 
         return refreshToken;
-    }
-
-    public async Task InvalidateRefreshTokenAsync(string refreshToken, string userIdString)
-    {
-        var invalidRefreshTokenKey = string.Format(RedisConstants.InvalidatedRefreshTokenStringKeyTemplate, refreshToken);
-        var refreshTokenKey = string.Format(RedisConstants.ValidRefreshTokenStringKeyTemplate, refreshToken);
-        var reverseRefreshTokenKey = string.Format(RedisConstants.ReverseValidRefreshTokenStringKeyTemplate, userIdString);
-
-        var refreshTokenLifeTimeInMinutes = _appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes;
-        var redisAuthDatabase = _appOptions.RedisOptions.Databases.Auth;
-
-        await _redisService.DeleteKeyAsync(refreshTokenKey, redisAuthDatabase);
-        await _redisService.DeleteKeyAsync(reverseRefreshTokenKey, redisAuthDatabase);
-
-        await _redisService.SetStringAsync(
-            invalidRefreshTokenKey,
-            userIdString,
-            TimeSpan.FromMinutes(refreshTokenLifeTimeInMinutes),
-            redisAuthDatabase);
-    }
-
-    public async Task InvalidateUserRefreshTokenAsync(string userIdString)
-    {
-        var reverseRefreshTokenKey = string.Format(RedisConstants.ReverseValidRefreshTokenStringKeyTemplate, userIdString);
-
-        var refreshToken = await _redisService.GetStringAsync(reverseRefreshTokenKey, _appOptions.RedisOptions.Databases.Auth);
-
-        if (refreshToken.IsNullOrEmpty)
-        {
-            return;
-        }
-
-        await InvalidateRefreshTokenAsync(refreshToken.ToString(), userIdString);
     }
 }
