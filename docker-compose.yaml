@@ -6,23 +6,26 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready --host=postgres --username=postgres" ]
+      test: ["CMD-SHELL", "pg_isready --host=postgres --username=postgres"]
       interval: 60s
       timeout: 10s
       retries: 5
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: '1524M'
+          cpus: "0.5"
+          memory: "1G"
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis
     ports:
       - "6379:6379"
-    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 60s
       timeout: 5s
       retries: 5
@@ -35,51 +38,54 @@ services:
     environment:
       # General Configuration
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      BaseUrl: "https://sepfrd.com/note-keeper/"
-      AllowedHosts: "*"
+      BaseApiUrl: "https://sepfrd.com/note-keeper/"
 
       # Logging Configuration
       Logging__LogLevel__Default: "Warning"
       Logging__LogLevel__MicrosoftAspNetCore: "Warning"
 
       # Connection Strings
-      ConnectionStrings__PostgreSql: "Host=postgres;Port=5432;Database=NoteKeeper;User Id=postgres;Password=${POSTGRES_PASSWORD};Trust Server Certificate=True"
+      DatabaseConnectionString: "Host=postgres;Port=5432;Database=NoteKeeper;User Id=postgres;Password=${POSTGRES_PASSWORD};Trust Server Certificate=True"
 
       # Redis Configuration
-      RedisConfiguration__Endpoint: "redis"
-      RedisConfiguration__Port: 6379
-      RedisConfiguration__User: "${REDIS_USERNAME}"
-      RedisConfiguration__Password: "${REDIS_PASSWORD}"
-      RedisConfiguration__Database: 0
-      RedisConfiguration__ConnectTimeout: 5000
-      RedisConfiguration__UseSsl: "false"
-      RedisConfiguration__ClientName: "NoteKeeper"
-      RedisConfiguration__RetryAttempts: 5
-      RedisConfiguration__KeepAlive: 180
+      RedisOptions__Endpoint: "redis"
+      RedisOptions__Port: 6379
+      RedisOptions__User: "${REDIS_USERNAME}"
+      RedisOptions__Password: "${REDIS_PASSWORD}"
+      RedisOptions__Database: 0
+      RedisOptions__ConnectTimeout: 5000
+      RedisOptions__UseSsl: "false"
+      RedisOptions__ClientName: "NoteKeeper"
+      RedisOptions__RetryAttempts: 5
+      RedisOptions__KeepAlive: 180
 
       # Ed25519 JWT Configuration
-      Ed25519JwtConfiguration__PrivateKey: "${PRIVATE_KEY}"
-      Ed25519JwtConfiguration__PublicKey: "${PUBLIC_KEY}"
-      Ed25519JwtConfiguration__Issuer: "https://sepfrd.com"
-      Ed25519JwtConfiguration__Audience: "https://sepfrd.com"
-      Ed25519JwtConfiguration__TokenLifetimeInSeconds: 86400
+      JwtOptions__PrivateKey: "${PRIVATE_KEY}"
+      JwtOptions__PublicKey: "${PUBLIC_KEY}"
+      JwtOptions__Issuer: "https://sepfrd.com"
+      JwtOptions__Audience: "https://sepfrd.com"
+      JwtOptions__TokenLifetimeInSeconds: 86400
+
+      # CORS Configuration
+      CorsOptions__AllowedUrls__1: "http://localhost:5000"
+      CorsOptions__AllowedUrls__2: "https://sepfrd.com"
 
       # Google OAuth2 Configuration
-      GoogleOAuth2Configuration__RedirectUri: "${GOOGLE_REDIRECT_URI}"
-      GoogleOAuth2Configuration__ClientId: "${GOOGLE_CLIENT_ID}"
-      GoogleOAuth2Configuration__ClientSecret: "${GOOGLE_CLIENT_SECRET}"
-      GoogleOAuth2Configuration__ProjectId: "${GOOGLE_PROJECT_ID}"
-      GoogleOAuth2Configuration__AuthUri: "${GOOGLE_AUTH_URI}"
-      GoogleOAuth2Configuration__TokenUri: "${GOOGLE_TOKEN_URI}"
-      GoogleOAuth2Configuration__RevokeUri: "${GOOGLE_REVOKE_URI}"
-      GoogleOAuth2Configuration__AuthProviderX509CertUrl: "${GOOGLE_AUTH_PROVIDER_X509_CERT_URL}"
+      GoogleOAuthOptions__RedirectUri: "${GOOGLE_REDIRECT_URI}"
+      GoogleOAuthOptions__ClientId: "${GOOGLE_CLIENT_ID}"
+      GoogleOAuthOptions__ClientSecret: "${GOOGLE_CLIENT_SECRET}"
+      GoogleOAuthOptions__ProjectId: "${GOOGLE_PROJECT_ID}"
+      GoogleOAuthOptions__AuthUri: "${GOOGLE_AUTH_URI}"
+      GoogleOAuthOptions__TokenUri: "${GOOGLE_TOKEN_URI}"
+      GoogleOAuthOptions__RevokeUri: "${GOOGLE_REVOKE_URI}"
+      GoogleOAuthOptions__AuthProviderX509CertUrl: "${GOOGLE_AUTH_PROVIDER_X509_CERT_URL}"
 
       # Notion OAuth2 Configuration
-      NotionOAuth2Configuration__RedirectUri: "${NOTION_REDIRECT_URI}"
-      NotionOAuth2Configuration__ClientId: "${NOTION_CLIENT_ID}"
-      NotionOAuth2Configuration__ClientSecret: "${NOTION_CLIENT_SECRET}"
-      NotionOAuth2Configuration__AuthUri: "${NOTION_AUTH_URI}"
-      NotionOAuth2Configuration__TokenUri: "${NOTION_TOKEN_URI}"
+      NotionOAuthOptions__RedirectUri: "${NOTION_REDIRECT_URI}"
+      NotionOAuthOptions__ClientId: "${NOTION_CLIENT_ID}"
+      NotionOAuthOptions__ClientSecret: "${NOTION_CLIENT_SECRET}"
+      NotionOAuthOptions__AuthUri: "${NOTION_AUTH_URI}"
+      NotionOAuthOptions__TokenUri: "${NOTION_TOKEN_URI}"
     ports:
       - "${APPLICATION_HTTP_PORT}:8080"
     depends_on:
@@ -89,3 +95,6 @@ services:
         condition: service_healthy
     restart: on-failure
 
+volumes:
+  postgres_data:
+    driver: local
