@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+    <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+        <xsd:element name="root" msdata:IsDataSet="true">
+
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="UsernameValidation" xml:space="preserve">
+        <value>Username must be 8-32 characters long and cannot start with a digit or underscore.</value>
+    </data>
+    <data name="PasswordValidation" xml:space="preserve">
+        <value>Password must be 8-32 characters long, contain at least one uppercase letter, one digit, and one special character.</value>
+    </data>
+    <data name="EmailValidation" xml:space="preserve">
+        <value>Email is not in a valid format.</value>
+    </data>
+    <data name="AlreadySignedIn" xml:space="preserve">
+        <value>You are already signed in.</value>
+    </data>
+    <data name="PropertyNotUniqueTemplate" xml:space="preserve">
+        <value>{0} is already taken.\nChoose another {1}.</value>
+    </data>
+    <data name="InvalidCredentials" xml:space="preserve">
+        <value>Username/Email and/or password not correct.</value>
+    </data>
+    <data name="NoTokensFound" xml:space="preserve">
+        <value>You have not authorized this app yet.</value>
+    </data>
+    <data name="EntityNotFoundByUuidTemplate" xml:space="preserve">
+        <value>{0} with GUID of {1} not found.</value>
+    </data>
+    <data name="OAuthTemplate" xml:space="preserve">
+        <value>{0} OAuth authentication failed. Please try again or contact support.</value>
+    </data>
+    <data name="GoogleTokenRevocation" xml:space="preserve">
+        <value>Google token(s) revocation failed. Please try again or contact support.</value>
+    </data>
+    <data name="GoogleSignin" xml:space="preserve">
+        <value>Google Sign-in failed. Please try again or contact support.</value>
+    </data>
+    <data name="GoogleSignup" xml:space="preserve">
+        <value>Google Sign-up failed. Please try again or contact support.</value>
+    </data>
+    <data name="GoogleOidc" xml:space="preserve">
+        <value>Google OpenID Connect request failed. Please try again or contact support.</value>
+    </data>
+    <data name="GoogleRefreshToken" xml:space="preserve">
+        <value>Google refresh token request failed. Please try again or contact support.</value>
+    </data>
+</root>

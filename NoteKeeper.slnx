@@ -1,5 +1,9 @@
 <Solution>
-    <Project Path="NoteKeeper.Business/NoteKeeper.Business.csproj"/>
-    <Project Path="NoteKeeper.DataAccess/NoteKeeper.DataAccess.csproj"/>
-    <Project Path="NoteKeeper.Presentation/NoteKeeper.Presentation.csproj"/>
+  <Folder Name="/src/">
+    <Project Path="src\NoteKeeper.Api\NoteKeeper.Api.csproj" Type="Classic C#" />
+    <Project Path="src\NoteKeeper.Application\NoteKeeper.Application.csproj" Type="Classic C#" />
+    <Project Path="src\NoteKeeper.Domain\NoteKeeper.Domain.csproj" Type="Classic C#" />
+    <Project Path="src\NoteKeeper.Infrastructure\NoteKeeper.Infrastructure.csproj" Type="Classic C#" />
+    <Project Path="src\NoteKeeper.Shared\NoteKeeper.Shared.csproj" Type="Classic C#" />
+  </Folder>
 </Solution>

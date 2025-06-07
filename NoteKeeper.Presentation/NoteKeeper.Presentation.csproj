@@ -23,14 +23,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NoteKeeper.Business\NoteKeeper.Business.csproj"/>
-        <ProjectReference Include="..\NoteKeeper.DataAccess\NoteKeeper.DataAccess.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <Content Include="..\.dockerignore">
             <Link>.dockerignore</Link>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Properties\launchSettings.json" />
     </ItemGroup>
 
 </Project>
