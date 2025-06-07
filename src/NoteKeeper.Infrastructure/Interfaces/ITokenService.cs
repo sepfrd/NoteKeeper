@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using NoteKeeper.Domain.Entities;
 
-namespace NoteKeeper.Application.Interfaces;
+namespace NoteKeeper.Infrastructure.Interfaces;
 
 public interface ITokenService
 {

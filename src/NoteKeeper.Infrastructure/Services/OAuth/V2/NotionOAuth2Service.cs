@@ -15,6 +15,7 @@ using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 using NoteKeeper.Infrastructure.Common.Dtos.Notion;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Infrastructure.Services.OAuth.V2;
 
@@ -23,7 +24,6 @@ public class NotionOAuth2Service : INotionOAuth2Service
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
-    private readonly IRepositoryBase<NotionToken> _notionTokenRepository;
     private readonly IUserRepository _userRepository;
     private readonly IAuthService _authService;
     private readonly NotionOAuthOptions _notionOAuthOptions;
@@ -34,7 +34,6 @@ public class NotionOAuth2Service : INotionOAuth2Service
         IHttpClientFactory httpClientFactory,
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
-        IRepositoryBase<NotionToken> notionTokenRepository,
         IUserRepository userRepository,
         IAuthService authService,
         IOptions<AppOptions> appOptions)
@@ -42,7 +41,6 @@ public class NotionOAuth2Service : INotionOAuth2Service
         _httpClientFactory = httpClientFactory;
         _memoryCache = memoryCache;
         _memoryCacheEntryOptions = memoryCacheEntryOptions;
-        _notionTokenRepository = notionTokenRepository;
         _userRepository = userRepository;
         _authService = authService;
         _notionOAuthOptions = appOptions.Value.NotionOAuthOptions;

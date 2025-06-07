@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace NoteKeeper.DataAccess.Migrations
 {
-    [DbContext(typeof(NoteKeeperDbContext))]
+    [DbContext(typeof(UnitOfWork))]
     partial class NoteKeeperDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

@@ -1,4 +1,6 @@
-namespace NoteKeeper.Application.Interfaces;
+using StackExchange.Redis;
+
+namespace NoteKeeper.Infrastructure.Interfaces;
 
 public interface IRedisPubSubService<in T> where T : class
 {

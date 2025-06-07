@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Users.Dtos;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.CQRS;
@@ -14,16 +14,18 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMappingService _mappingService;
+    private readonly ILogger<CreateUserCommandHandler> _logger;
 
-    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IMappingService mappingService)
+    public CreateUserCommandHandler(IUnitOfWork unitOfWork, IMappingService mappingService, ILogger<CreateUserCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _mappingService = mappingService;
+        _logger = logger;
     }
 
     public async Task<DomainResult<UserDto>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken)
     {
-        var isUsernameUnique = await _unitOfWork.IsUsernameUniqueAsync(command.Username, cancellationToken);
+        var isUsernameUnique = await _unitOfWork.UserRepository.IsUsernameUniqueAsync(command.Username, cancellationToken);
 
         if (!isUsernameUnique)
         {
@@ -36,7 +38,7 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
             return DomainResult<UserDto>.CreateFailure(message, StatusCodes.Status400BadRequest);
         }
 
-        var isEmailUnique = await _unitOfWork.IsEmailUniqueAsync(command.Email, cancellationToken);
+        var isEmailUnique = await _unitOfWork.UserRepository.IsEmailUniqueAsync(command.Email, cancellationToken);
 
         if (!isEmailUnique)
         {
@@ -51,17 +53,21 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
 
         var user = _mappingService.Map<CreateUserCommand, User>(command);
 
-        await _unitOfWork.CreateAsync(user!, cancellationToken);
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        var userDto = UserDto.FromUserDomainEntity(createdUser);
-
-        return new ResponseDto<UserDto?>
+        if (user is null)
         {
-            Data = userDto,
-            IsSuccess = true,
-            HttpStatusCode = HttpStatusCode.Created
-        };
+            _logger.LogCritical(ErrorMessages.MappingLogTemplate, typeof(CreateUserCommand), typeof(User));
+
+            return DomainResult<UserDto>.CreateFailure(
+                ErrorMessages.InternalServerError,
+                StatusCodes.Status500InternalServerError);
+        }
+
+        var createdUser = await _unitOfWork.UserRepository.CreateAsync(user, cancellationToken);
+
+        await _unitOfWork.CommitChangesAsync(cancellationToken);
+
+        var userDto = _mappingService.Map<User, UserDto>(createdUser);
+
+        return DomainResult<UserDto>.CreateSuccess(null, StatusCodes.Status201Created, userDto!);
     }
 }

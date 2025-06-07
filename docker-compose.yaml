@@ -69,7 +69,8 @@ services:
       # CORS Configuration
       CorsOptions__AllowedUrls__1: "http://localhost:5000"
       CorsOptions__AllowedUrls__2: "https://sepfrd.com"
-
+      CorsOptions__AllowedUrls__3: "http://localhost:3000"
+      
       # Google OAuth2 Configuration
       GoogleOAuthOptions__RedirectUri: "${GOOGLE_REDIRECT_URI}"
       GoogleOAuthOptions__ClientId: "${GOOGLE_CLIENT_ID}"

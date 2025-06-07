@@ -1,16 +1,17 @@
 using System.Linq.Expressions;
+using Dapper;
 using Humanizer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using NoteKeeper.Application.Interfaces;
+using NoteKeeper.Application.Interfaces.Repositories;
 using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Infrastructure.Persistence.Repositories;
 
-public abstract class RepositoryBase<TEntity, TKey>
-    : IRepositoryBase<TEntity, TKey>
+public abstract class RepositoryBase<TEntity, TKey> : IRepositoryBase<TEntity, TKey>
     where TEntity : DomainEntity
     where TKey : IEquatable<TKey>
 {
@@ -22,17 +23,21 @@ public abstract class RepositoryBase<TEntity, TKey>
     {
         _dbSet = dbSet;
         _dbConnectionPool = dbConnectionPool;
-        _tableName = _dbSet.EntityType.ShortName().Pluralize();
+        _tableName = $"\"{_dbSet.EntityType.ShortName().Pluralize()}\"";
     }
 
-    public virtual async Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity?> CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
-        await _dbSet.AddAsync(entity, cancellationToken).ConfigureAwait(false);
+        var entityEntry = await _dbSet
+            .AddAsync(entity, cancellationToken)
+            .ConfigureAwait(false);
+
+        return entityEntry.Entity;
     }
 
-    public async Task CreateManyAsync(IEnumerable<TEntity> entity, CancellationToken cancellationToken = default)
+    public async Task CreateManyAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
     {
-        await _dbSet.AddRangeAsync(entity, cancellationToken).ConfigureAwait(false);
+        await _dbSet.AddRangeAsync(entities, cancellationToken).ConfigureAwait(false);
     }
 
     public virtual async Task<TEntity?> GetOneAsync(
@@ -198,7 +203,8 @@ public abstract class RepositoryBase<TEntity, TKey>
             data = data.AsNoTracking();
         }
 
-        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuc<IEnumerable<TEntity>>,
+        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuccess(
+            null,
             StatusCodes.Status200OK,
             data,
             page,
@@ -208,7 +214,8 @@ public abstract class RepositoryBase<TEntity, TKey>
         return response;
     }
 
-    public virtual async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAs<IEnumerable<TEntity>>n<Func<TEntity, bool>> filter,
+    public virtual async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync(
+        Expression<Func<TEntity, bool>> filter,
         IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
         uint page = 1,
         uint limit = 10,
@@ -240,7 +247,8 @@ public abstract class RepositoryBase<TEntity, TKey>
             data = data.AsNoTracking();
         }
 
-        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuc<IEnumerable<TEntity>>,
+        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuccess(
+            null,
             StatusCodes.Status200OK,
             data,
             page,
@@ -250,7 +258,8 @@ public abstract class RepositoryBase<TEntity, TKey>
         return response;
     }
 
-    public virtual async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAs<IEnumerable<TEntity>>Expression<Func<TEntity, TSorter>> orderBy,
+    public virtual async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync<TSorter>(
+        Expression<Func<TEntity, TSorter>> orderBy,
         IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
         uint page = 1,
         uint limit = 10,
@@ -287,7 +296,8 @@ public abstract class RepositoryBase<TEntity, TKey>
             data = data.AsNoTracking();
         }
 
-        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuc<IEnumerable<TEntity>>,
+        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuccess(
+            null,
             StatusCodes.Status200OK,
             data,
             page,
@@ -297,7 +307,8 @@ public abstract class RepositoryBase<TEntity, TKey>
         return response;
     }
 
-    public async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAs<IEnumerable<TEntity>>Expression<Func<TEntity, bool>> filter,
+    public async Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync<TSorter>(
+        Expression<Func<TEntity, bool>> filter,
         Expression<Func<TEntity, TSorter>> orderBy,
         IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
         uint page = 1,
@@ -335,7 +346,8 @@ public abstract class RepositoryBase<TEntity, TKey>
             data = data.AsNoTracking();
         }
 
-        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuc<IEnumerable<TEntity>>,
+        var response = PaginatedDomainResult<IEnumerable<TEntity>>.CreateSuccess(
+            null,
             StatusCodes.Status200OK,
             data,
             page,
@@ -443,8 +455,10 @@ public abstract class RepositoryBase<TEntity, TKey>
         return count;
     }
 
-    public void Update(TEntity entityToUpdate) =>
-        _dbSet.Update(entityToUpdate);
+    public TEntity? Update(TEntity entityToUpdate) =>
+        _dbSet
+            .Update(entityToUpdate)
+            .Entity;
 
     public void Delete(TEntity entityToDelete) =>
         _dbSet.Remove(entityToDelete);

@@ -1,4 +1,6 @@
 using NoteKeeper.Application.Interfaces;
+using NoteKeeper.Infrastructure.Interfaces;
+using StackExchange.Redis;
 
 namespace NoteKeeper.Infrastructure.ExternalServices;
 

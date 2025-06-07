@@ -1,13 +1,16 @@
-using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.Repositories;
 
-namespace InsightFlow.Application.Interfaces;
+namespace NoteKeeper.Application.Interfaces;
 
 public interface IUnitOfWork
 {
     IUserRepository UserRepository { get; }
 
     INoteRepository NoteRepository { get; }
+
+    INotionTokenRepository NotionTokenRepository { get; }
+
+    IGoogleTokenRepository GoogleTokenRepository { get; }
 
     int CommitChanges();
 

@@ -1,52 +1,46 @@
-using System.Net;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Options;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.Repositories;
+using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 using NoteKeeper.Infrastructure.Common.Dtos.Responses;
+using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Shared.Resources;
 using NoteKeeper.Shared.Utilities;
 
 namespace NoteKeeper.Infrastructure.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ITokenService _tokenService;
     private readonly IRedisService _redisService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly AppOptions _appOptions;
 
     public AuthService(
-        IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
         ITokenService tokenService,
         IRedisService redisService,
         IHttpContextAccessor httpContextAccessor,
         IOptions<AppOptions> appOptions)
     {
-        _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
         _tokenService = tokenService;
         _redisService = redisService;
         _httpContextAccessor = httpContextAccessor;
         _appOptions = appOptions.Value;
     }
 
-    public async Task<ResponseDto<AuthResponseDto?>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
+    public async Task<DomainResult<AuthResponseDto?>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
     {
         if (IsSignedIn())
         {
-            return new ResponseDto<AuthResponseDto?>
-            {
-                IsSuccess = false,
-                Message = MessageConstants.AlreadySignedInMessage,
-                HttpStatusCode = HttpStatusCode.BadRequest
-            };
+            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.AlreadySignedIn, StatusCodes.Status400BadRequest);
         }
 
         var user = await GetByUsernameOrEmailAsync(loginDto.UsernameOrEmail, cancellationToken);
@@ -55,43 +49,27 @@ public class AuthService : IAuthService
             user.RegistrationType != RegistrationType.Direct ||
             !RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
         {
-            return new ResponseDto<AuthResponseDto?>
-            {
-                IsSuccess = false,
-                Message = MessageConstants.InvalidCredentialsMessage,
-                HttpStatusCode = HttpStatusCode.BadRequest
-            };
+            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.InvalidCredentials, StatusCodes.Status400BadRequest);
         }
 
         var isPasswordValid = CryptographyHelper.ValidatePassword(loginDto.Password, user.PasswordHash!);
 
         if (!isPasswordValid)
         {
-            return new ResponseDto<AuthResponseDto?>
-            {
-                IsSuccess = false,
-                Message = MessageConstants.InvalidCredentialsMessage,
-                HttpStatusCode = HttpStatusCode.BadRequest
-            };
+            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.InvalidCredentials, StatusCodes.Status400BadRequest);
         }
 
         var jwt = _tokenService.GenerateEd25519Jwt(user);
 
         var refreshToken = await _tokenService.GenerateNewRefreshTokenAsync(user.Id.ToString());
 
-        return new ResponseDto<AuthResponseDto?>
-        {
-            Data = new AuthResponseDto(
-                jwt,
-                refreshToken,
-                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
-            IsSuccess = true,
-            Message = MessageConstants.SuccessfulLoginMessage,
-            HttpStatusCode = HttpStatusCode.OK
-        };
+        return DomainResult<AuthResponseDto?>.CreateSuccess(SuccessMessages.Login, StatusCodes.Status200OK, new AuthResponseDto(
+            jwt,
+            refreshToken,
+            DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
     }
 
-    public async Task<ResponseDto<AuthResponseDto?>> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<DomainResult<AuthResponseDto?>> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         var redisAuthDatabase = _appOptions.RedisOptions.Databases.Auth;
         var existingRefreshTokenKey = string.Format(RedisConstants.RefreshTokenStringKeyTemplate, refreshToken);
@@ -100,49 +78,33 @@ public class AuthService : IAuthService
 
         if (redisValue.IsNullOrEmpty)
         {
-            return new ResponseDto<AuthResponseDto?>
-            {
-                IsSuccess = false,
-                HttpStatusCode = HttpStatusCode.Unauthorized
-            };
+            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.Unauthorized, StatusCodes.Status401Unauthorized);
         }
 
-        // generate a new JWT, refresh token, invalidate the previous token and save to Redis.
-
         var userId = (long)redisValue;
-        var user = await _userRepository.GetByIdAsync(userId, null, cancellationToken);
+
+        var user = await _unitOfWork.UserRepository.GetOneAsync(
+            user => user.Id == userId,
+            disableTracking: true,
+            cancellationToken: cancellationToken);
 
         var jwt = _tokenService.GenerateEd25519Jwt(user!);
 
         var newRefreshToken = await _tokenService.GenerateNewRefreshTokenAsync(userId.ToString());
 
-        return new ResponseDto<AuthResponseDto?>
-        {
-            Data = new AuthResponseDto(
-                jwt,
-                newRefreshToken,
-                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
-            IsSuccess = true,
-            Message = MessageConstants.SuccessfulTokenRefreshMessage,
-            HttpStatusCode = HttpStatusCode.OK
-        };
+        return DomainResult<AuthResponseDto?>.CreateSuccess(SuccessMessages.TokenRefresh, StatusCodes.Status200OK, new AuthResponseDto(
+            jwt,
+            newRefreshToken,
+            DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
     }
 
-    public async Task<User?> GetSignedInUserAsync(
-        Func<IQueryable<User>, IIncludableQueryable<User, object?>>? include = null,
-        CancellationToken cancellationToken = default)
-    {
-        var userUuid = _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtExtendedConstants.JwtUuidClaimType);
-
-        if (userUuid is null)
-        {
-            return null;
-        }
-
-        var user = await _userRepository.GetByUuidAsync(Guid.Parse(userUuid), include, cancellationToken);
-
-        return user;
-    }
+    public string GetSignedInUserUuid() =>
+        _httpContextAccessor
+            .HttpContext?
+            .User
+            .Claims
+            .First(claim => claim.Type == JwtExtendedConstants.JwtUuidClaimType)
+            .Value!;
 
     private bool IsSignedIn() =>
         _httpContextAccessor.HttpContext!.User.Identity is not null && _httpContextAccessor.HttpContext!.User.Identity.IsAuthenticated;
@@ -153,11 +115,17 @@ public class AuthService : IAuthService
 
         if (RegexValidator.UsernameRegex().IsMatch(usernameOrEmail))
         {
-            user = await _userRepository.GetByUsernameAsync(usernameOrEmail, null, cancellationToken);
+            user = await _unitOfWork.UserRepository.GetOneAsync(
+                userEntity => userEntity.Username == usernameOrEmail,
+                disableTracking: true,
+                cancellationToken: cancellationToken);
         }
         else
         {
-            user = await _userRepository.GetByEmailAsync(usernameOrEmail, null, cancellationToken);
+            user = await _unitOfWork.UserRepository.GetOneAsync(
+                userEntity => userEntity.Email == usernameOrEmail,
+                disableTracking: true,
+                cancellationToken: cancellationToken);
         }
 
         return user;

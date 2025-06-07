@@ -1,21 +1,18 @@
-using System.Globalization;
-using System.Text.Json;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Infrastructure.Common.Constants;
-using NoteKeeper.Infrastructure.Interfaces;
-using StackExchange.Redis;
+using NoteKeeper.Application.Interfaces.CQRS;
+using NoteKeeper.Domain.Common;
 
-namespace NoteKeeper.Infrastructure.Services;
+namespace NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
 
-public class NoteService : INoteService
+public class SubscribeToNoteChangesCommandHandler : ICommandHandler<SubscribeToNoteChangesCommand, DomainResult>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuthService _authService;
     private readonly IRedisPubSubService<NoteDto> _redisPubSubService;
     private readonly IRedisService _redisService;
 
-    public NoteService(
+    public SubscribeToNoteChangesCommandHandler(
         IUnitOfWork unitOfWork,
         IAuthService authService,
         IRedisPubSubService<NoteDto> redisPubSubService,
@@ -58,7 +55,8 @@ public class NoteService : INoteService
         var message = string.Format(CultureInfo.InvariantCulture, messageTemplate, redisChannel, serializedRedisValue);
 
         Console.WriteLine(message);
-
-        Console.ResetColor();
     }
+
+    public Task<DomainResult> HandleAsync(SubscribeToNoteChangesCommand command, CancellationToken cancellationToken) =>
+        throw new NotImplementedException();
 }

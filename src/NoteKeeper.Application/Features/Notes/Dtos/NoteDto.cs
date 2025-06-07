@@ -1,6 +1,4 @@
-using NoteKeeper.Domain.Entities;
-
-namespace NoteKeeper.Infrastructure.Common.Dtos.DomainEntities;
+namespace NoteKeeper.Application.Features.Notes.Dtos;
 
 public record NoteDto
 {
@@ -18,6 +16,4 @@ public record NoteDto
     public string Content { get; init; }
 
     public Guid UserUuid { get; set; }
-
-    public static NoteDto FromNoteDomainEntity(Note note) => new(note.Uuid, note.Title, note.Content);
 }

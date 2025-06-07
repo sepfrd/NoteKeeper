@@ -10,6 +10,7 @@ using NoteKeeper.Domain.Entities;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
+using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Shared.Utilities;
 using Org.BouncyCastle.Crypto.Signers;
 

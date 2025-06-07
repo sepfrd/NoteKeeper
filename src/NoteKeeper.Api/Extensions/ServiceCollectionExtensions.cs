@@ -1,12 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NoteKeeper.Api.Authentication;
 using NoteKeeper.Api.Transformers;
+using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
+using CorsOptions = Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions;
 
 namespace NoteKeeper.Api.Extensions;
 

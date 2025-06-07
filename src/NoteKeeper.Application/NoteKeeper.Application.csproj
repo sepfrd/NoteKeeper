@@ -7,17 +7,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Features\Notes\" />
-      <Folder Include="Features\Users\Handlers\" />
+        <Folder Include="Features\Notes\Commands\UnsubscribeFromNoteChanges\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NoteKeeper.Domain\NoteKeeper.Domain.csproj" />
-      <ProjectReference Include="..\NoteKeeper.Shared\NoteKeeper.Shared.csproj" />
+        <ProjectReference Include="..\NoteKeeper.Domain\NoteKeeper.Domain.csproj"/>
+        <ProjectReference Include="..\NoteKeeper.Shared\NoteKeeper.Shared.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
+        <PackageReference Include="Humanizer.Core" Version="2.14.1"/>
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.5"/>
+        <PackageReference Include="StackExchange.Redis" Version="2.8.37"/>
     </ItemGroup>
 
 </Project>
