@@ -10,19 +10,13 @@ namespace NoteKeeper.Infrastructure.Services;
 
 public class NoteService : INoteService
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IAuthService _authService;
     private readonly IRedisPubSubService<NoteDto> _redisPubSubService;
     private readonly IRedisService _redisService;
 
     public NoteService(
-        IUnitOfWork unitOfWork,
-        IAuthService authService,
         IRedisPubSubService<NoteDto> redisPubSubService,
         IRedisService redisService)
     {
-        _unitOfWork = unitOfWork;
-        _authService = authService;
         _redisPubSubService = redisPubSubService;
         _redisService = redisService;
     }

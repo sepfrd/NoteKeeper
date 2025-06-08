@@ -1,4 +1,4 @@
-namespace NoteKeeper.Infrastructure.Interfaces;
+namespace NoteKeeper.Application.Interfaces;
 
 public interface INoteService
 {

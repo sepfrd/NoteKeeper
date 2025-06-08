@@ -55,7 +55,7 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
 
         if (user is null)
         {
-            _logger.LogCritical(ErrorMessages.MappingLogTemplate, typeof(CreateUserCommand), typeof(User));
+            _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(CreateUserCommand), typeof(User));
 
             return DomainResult<UserDto>.CreateFailure(
                 ErrorMessages.InternalServerError,

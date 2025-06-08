@@ -1,11 +1,11 @@
 using System.Linq.Expressions;
 using NoteKeeper.Domain.Common;
-using NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Interfaces;
 
 namespace NoteKeeper.Application.Interfaces.Repositories;
 
 public interface IRepositoryBase<TEntity, in TKey>
-    where TEntity : DomainEntity
+    where TEntity : class, IEntity<TKey>
     where TKey : IEquatable<TKey>
 {
     Task<TEntity?> CreateAsync(TEntity entity, CancellationToken cancellationToken = default);
@@ -109,7 +109,7 @@ public interface IRepositoryBase<TEntity, in TKey>
         bool disableTracking = false,
         CancellationToken cancellationToken = default);
 
-    TEntity? Update(TEntity entityToUpdate);
+    TEntity Update(TEntity entityToUpdate);
 
     void Delete(TEntity entityToDelete);
 

@@ -31,18 +31,4 @@ public record NotionTokenResponseDto
 
     [JsonPropertyName(CustomOAuthConstants.NotionRequestIdJsonPropertyName)]
     public string? RequestId { get; set; }
-
-    public NotionToken ToNotionTokenDomainEntity() => new()
-    {
-        AccessToken = AccessToken,
-        TokenType = TokenType,
-        BotId = BotId,
-        WorkspaceName = WorkspaceName,
-        WorkspaceIconUrl = WorkspaceIcon,
-        WorkspaceId = WorkspaceId,
-        NotionId = Owner?.User?.Id,
-        Name = Owner?.User?.Name,
-        AvatarUrl = Owner?.User?.AvatarUrl,
-        NotionEmail = Owner?.User?.Person?.Email
-    };
 }

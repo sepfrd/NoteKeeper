@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Features\Notes\Commands\UnsubscribeFromNoteChanges\"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\NoteKeeper.Domain\NoteKeeper.Domain.csproj"/>
         <ProjectReference Include="..\NoteKeeper.Shared\NoteKeeper.Shared.csproj"/>
     </ItemGroup>

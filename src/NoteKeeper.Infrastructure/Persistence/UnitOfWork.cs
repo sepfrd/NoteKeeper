@@ -2,9 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.Repositories;
 using NoteKeeper.Domain.Entities;
-using NoteKeeper.Infrastructure.ExternalServices.Google;
 using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
-using NoteKeeper.Infrastructure.ExternalServices.Notion;
 using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence.EntityConfigurations;
@@ -18,6 +16,7 @@ public class UnitOfWork : DbContext, IUnitOfWork
 
     private UserRepository? _userRepository;
     private NoteRepository? _noteRepository;
+    private IExternalProviderAccountRepository? _externalProviderAccountRepository;
     private GoogleTokenRepository? _googleTokenRepository;
     private NotionTokenRepository? _notionTokenRepository;
 
@@ -29,6 +28,8 @@ public class UnitOfWork : DbContext, IUnitOfWork
     public DbSet<Note> Notes { get; set; }
 
     public DbSet<User> Users { get; set; }
+
+    public DbSet<ExternalProviderAccount> ExternalProviderAccounts { get; set; }
 
     public DbSet<GoogleToken> GoogleTokens { get; set; }
 
@@ -48,6 +49,8 @@ public class UnitOfWork : DbContext, IUnitOfWork
     public IUserRepository UserRepository => _userRepository ??= new UserRepository(Users, _dbConnectionPool);
 
     public INoteRepository NoteRepository => _noteRepository ??= new NoteRepository(Notes, _dbConnectionPool);
+
+    public IExternalProviderAccountRepository ExternalProviderAccountRepository => _externalProviderAccountRepository ??= new ExternalProviderAccountRepository(ExternalProviderAccounts, _dbConnectionPool);
 
     public INotionTokenRepository NotionTokenRepository => _notionTokenRepository ??= new NotionTokenRepository(NotionTokens, _dbConnectionPool);
 

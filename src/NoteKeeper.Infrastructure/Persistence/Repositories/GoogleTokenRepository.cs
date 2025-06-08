@@ -1,7 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using NoteKeeper.Application.Interfaces.Repositories;
-using NoteKeeper.Domain.Entities;
-using NoteKeeper.Infrastructure.ExternalServices.Google;
 using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 

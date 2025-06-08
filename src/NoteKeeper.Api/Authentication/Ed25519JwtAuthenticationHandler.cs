@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Authentication;
 

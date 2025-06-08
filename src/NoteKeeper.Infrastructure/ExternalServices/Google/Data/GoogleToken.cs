@@ -1,10 +1,21 @@
-using NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Interfaces;
 
 namespace NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 
-public class GoogleToken
+public class GoogleToken : IEntity<long>, IAuditable
 {
+    public GoogleToken()
+    {
+        CreatedAt = UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public long Id { get; set; }
+
+    public DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public void MarkAsUpdated() => UpdatedAt = DateTimeOffset.UtcNow;
 
     public required string AccessToken { get; set; }
 

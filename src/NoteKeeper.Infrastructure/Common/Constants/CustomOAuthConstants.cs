@@ -24,7 +24,7 @@ public static class CustomOAuthConstants
     public const string AuthorizationCodeGrantType = "authorization_code";
     public const string RefreshTokenGrantType = "refresh_token";
 
-    public const string GoogleSignupPendingUsername = "google_signup_pending";
+    public const string GoogleOidcPendingUsername = "google_oidc_pending";
 
     public const string AccessTokenJsonPropertyName = "access_token";
     public const string ExpiresInJsonPropertyName = "expires_in";

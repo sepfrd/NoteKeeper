@@ -3,4 +3,4 @@ using NoteKeeper.Application.Interfaces.CQRS;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
 
-public record GetAllNotesByFilterQuery(NoteFilterDto FilterDto, uint PageNumber, uint PageSize) : IQuery;
+public record GetAllNotesByFilterQuery(NoteFilterDto? FilterDto, uint PageNumber, uint PageSize) : IQuery;

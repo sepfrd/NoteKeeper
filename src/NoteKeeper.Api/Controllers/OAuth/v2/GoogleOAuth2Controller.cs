@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers.OAuth.v2;
 
@@ -19,7 +21,7 @@ public class GoogleOAuth2Controller : ControllerBase
     {
         var result = await _googleOAuth2Service.AuthenticateWithGoogleAsync(cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet]
@@ -36,7 +38,7 @@ public class GoogleOAuth2Controller : ControllerBase
 
         var result = await _googleOAuth2Service.CompleteGoogleAuthenticationAsync(exchangeRequestDto, cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpPatch]
@@ -46,7 +48,7 @@ public class GoogleOAuth2Controller : ControllerBase
     {
         var result = await _googleOAuth2Service.GoogleRefreshAccessTokenAsync(cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpDelete]
@@ -56,7 +58,7 @@ public class GoogleOAuth2Controller : ControllerBase
     {
         var result = await _googleOAuth2Service.RevokeTokensAsync(cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpOptions]

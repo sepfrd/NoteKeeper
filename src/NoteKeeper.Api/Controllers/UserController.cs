@@ -1,4 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using NoteKeeper.Application.Features.Users.Commands.CreateUser;
+using NoteKeeper.Application.Features.Users.Dtos;
+using NoteKeeper.Application.Interfaces.CQRS;
+using NoteKeeper.Domain.Common;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -6,18 +10,18 @@ namespace NoteKeeper.Api.Controllers;
 [Route("api/users")]
 public class UserController : ControllerBase
 {
-    private readonly IUserService _userService;
+    private readonly ICommandHandler<CreateUserCommand, DomainResult<UserDto>> _createUserCommandHandler;
 
-    public UserController(IUserService userService)
+    public UserController(ICommandHandler<CreateUserCommand, DomainResult<UserDto>> createUserCommandHandler)
     {
-        _userService = userService;
+        _createUserCommandHandler = createUserCommandHandler;
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateUserAsync([FromBody] CreateUserRequestDto createUserRequestDto, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateUserAsync([FromBody] CreateUserCommand command, CancellationToken cancellationToken)
     {
-        var result = await _userService.CreateUserAsync(createUserRequestDto, cancellationToken);
+        var result = await _createUserCommandHandler.HandleAsync(command, cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 }

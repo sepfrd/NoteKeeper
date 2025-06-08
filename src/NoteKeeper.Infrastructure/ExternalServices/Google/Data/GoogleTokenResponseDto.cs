@@ -22,14 +22,4 @@ public record GoogleTokenResponseDto
 
     [JsonPropertyName(CustomOAuthConstants.IdTokenJsonPropertyName)]
     public string? IdToken { get; init; }
-
-    public GoogleToken ToGoogleTokenDomainEntity() => new()
-    {
-        AccessToken = AccessToken,
-        ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(ExpiresIn),
-        RefreshToken = RefreshToken!,
-        Scope = Scope,
-        TokenType = TokenType,
-        IdToken = IdToken
-    };
 }

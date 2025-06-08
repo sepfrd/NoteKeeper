@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.Repositories;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Infrastructure.Interfaces;

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Data;
 using NoteKeeper.Infrastructure.Interfaces;
+using Npgsql;
 
 namespace NoteKeeper.Infrastructure.Persistence;
 
@@ -24,10 +25,14 @@ public sealed class DbConnectionPool : IDbConnectionPool
     public IDbConnection GetConnection()
     {
         if (_connections.TryTake(out var connection) && connection.State == ConnectionState.Open)
+        {
             return connection;
+        }
 
-        var newConnection = new SqlConnection(_connectionString);
+        var newConnection = new NpgsqlConnection(_connectionString);
+
         newConnection.Open();
+
         return newConnection;
     }
 

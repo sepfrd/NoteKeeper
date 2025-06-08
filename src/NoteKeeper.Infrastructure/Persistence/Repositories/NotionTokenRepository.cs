@@ -1,7 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using NoteKeeper.Application.Interfaces.Repositories;
-using NoteKeeper.Domain.Entities;
-using NoteKeeper.Infrastructure.ExternalServices.Notion;
 using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 

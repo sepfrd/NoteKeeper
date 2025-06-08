@@ -1,6 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
-using NoteKeeper.Domain.Entities;
-using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 
 namespace NoteKeeper.Infrastructure.ExternalServices.Google.Data;
@@ -45,13 +44,4 @@ public record GoogleIdTokenPayloadDto
 
     [JsonPropertyName(JwtRegisteredClaimNames.Exp)]
     public int? ExpiresAt { get; set; }
-
-    public User ToUserDomainEntity() => new()
-    {
-        Username = Subject,
-        Email = Email,
-        FirstName = GivenName,
-        LastName = FamilyName,
-        RegistrationType = RegistrationType.Google
-    };
 }

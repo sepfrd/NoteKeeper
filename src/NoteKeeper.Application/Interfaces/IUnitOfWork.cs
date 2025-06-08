@@ -8,9 +8,7 @@ public interface IUnitOfWork
 
     INoteRepository NoteRepository { get; }
 
-    INotionTokenRepository NotionTokenRepository { get; }
-
-    IGoogleTokenRepository GoogleTokenRepository { get; }
+    IExternalProviderAccountRepository ExternalProviderAccountRepository { get; }
 
     int CommitChanges();
 

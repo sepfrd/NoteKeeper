@@ -1,5 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
+using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
+using NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
+using NoteKeeper.Application.Features.Notes.Commands.UnsubscribeFromNoteChanges;
+using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
+using NoteKeeper.Application.Features.Notes.Dtos;
+using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
+using NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
+using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
+using NoteKeeper.Application.Interfaces;
+using NoteKeeper.Application.Interfaces.CQRS;
+using NoteKeeper.Domain.Common;
+using NoteKeeper.Infrastructure.Common.Dtos.Requests;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -9,18 +23,53 @@ namespace NoteKeeper.Api.Controllers;
 public class NoteController : ControllerBase
 {
     private readonly INoteService _noteService;
+    private readonly IAuthService _authService;
+    private readonly ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> _createNoteCommandHandler;
+    private readonly ICommandHandler<DeleteNoteCommand, DomainResult> _deleteNoteCommandHandler;
+    private readonly ICommandHandler<SubscribeToNoteChangesCommand, DomainResult> _subscribeToNoteChangesCommandHandler;
+    private readonly ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult> _unsubscribeFromNoteChangesCommandHandler;
+    private readonly ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> _updateNoteCommandHandler;
+    private readonly IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> _getAllNotesByFilterQueryHandler;
+    private readonly IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> _getAllNotesCountQueryHandler;
+    private readonly IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> _getNoteByUuidQueryHandler;
 
-    public NoteController(INoteService noteService)
+    public NoteController(
+        INoteService noteService,
+        IAuthService authService,
+        ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> createNoteCommandHandler,
+        ICommandHandler<DeleteNoteCommand, DomainResult> deleteNoteCommandHandler,
+        ICommandHandler<SubscribeToNoteChangesCommand, DomainResult> subscribeToNoteChangesCommandHandler,
+        ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult> unsubscribeFromNoteChangesCommandHandler,
+        ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> updateNoteCommandHandler,
+        IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> getAllNotesByFilterQueryHandler,
+        IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> getAllNotesCountQueryHandler,
+        IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> getNoteByUuidQueryHandler)
     {
         _noteService = noteService;
+        _createNoteCommandHandler = createNoteCommandHandler;
+        _deleteNoteCommandHandler = deleteNoteCommandHandler;
+        _subscribeToNoteChangesCommandHandler = subscribeToNoteChangesCommandHandler;
+        _unsubscribeFromNoteChangesCommandHandler = unsubscribeFromNoteChangesCommandHandler;
+        _updateNoteCommandHandler = updateNoteCommandHandler;
+        _getAllNotesByFilterQueryHandler = getAllNotesByFilterQueryHandler;
+        _getAllNotesCountQueryHandler = getAllNotesCountQueryHandler;
+        _getNoteByUuidQueryHandler = getNoteByUuidQueryHandler;
+        _authService = authService;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateNoteAsync([FromBody] CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken)
     {
-        var result = await _noteService.CreateAsync(createNoteRequestDto, cancellationToken);
+        var signedInUserUuid = _authService.GetSignedInUserUuid();
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        var command = new CreateNoteCommand(
+            createNoteRequestDto.Title,
+            createNoteRequestDto.Content,
+            Guid.Parse(signedInUserUuid));
+
+        var result = await _createNoteCommandHandler.HandleAsync(command, cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpPost]
@@ -33,20 +82,24 @@ public class NoteController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllNotesAsync([FromQuery] int? pageNumber, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllNotesAsync([FromQuery] uint? pageNumber, [FromQuery] uint? pageSize, CancellationToken cancellationToken)
     {
-        var result = await _noteService.GetAllAsync(pageNumber ?? 1, pageSize ?? 10, cancellationToken);
+        var query = new GetAllNotesByFilterQuery(null, pageNumber ?? 1, pageSize ?? 10);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        var result = await _getAllNotesByFilterQueryHandler.HandleAsync(query, cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet]
     [Route("uuid/{noteUuid:guid}")]
     public async Task<IActionResult> GetNoteByUuidAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
     {
-        var result = await _noteService.GetByUuidAsync(noteUuid, cancellationToken);
+        var query = new GetNoteByUuidQuery(noteUuid);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        var result = await _getNoteByUuidQueryHandler.HandleAsync(query, cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpPatch]
@@ -56,21 +109,32 @@ public class NoteController : ControllerBase
         UpdateNoteRequestDto updateNoteRequestDto,
         CancellationToken cancellationToken)
     {
-        var result = await _noteService.UpdateByUuidAsync(
-            noteUuid,
-            updateNoteRequestDto,
-            cancellationToken);
+        var signedInUserUuid = _authService.GetSignedInUserUuid();
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        var command = new UpdateNoteCommand(
+            noteUuid,
+            Guid.Parse(signedInUserUuid),
+            updateNoteRequestDto.NewTitle,
+            updateNoteRequestDto.NewContent);
+
+        var result = await _updateNoteCommandHandler.HandleAsync(command, cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpDelete]
     [Route("uuid/{noteUuid:guid}")]
     public async Task<IActionResult> DeleteNoteByUuidAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
     {
-        var result = await _noteService.DeleteByUuidAsync(noteUuid, cancellationToken);
+        var signedInUserUuid = _authService.GetSignedInUserUuid();
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        var command = new DeleteNoteCommand(
+            noteUuid,
+            Guid.Parse(signedInUserUuid));
+
+        var result = await _deleteNoteCommandHandler.HandleAsync(command, cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpDelete]

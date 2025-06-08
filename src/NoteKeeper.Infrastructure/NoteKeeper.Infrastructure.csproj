@@ -8,8 +8,6 @@
 
     <ItemGroup>
         <Folder Include="Common\"/>
-        <Folder Include="Common\Dtos\Google\" />
-        <Folder Include="Common\Dtos\Notion\" />
     </ItemGroup>
 
     <ItemGroup>

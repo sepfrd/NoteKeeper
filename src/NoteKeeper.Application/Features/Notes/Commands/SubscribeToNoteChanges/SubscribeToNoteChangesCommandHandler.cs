@@ -1,4 +1,4 @@
-using NoteKeeper.Application.Features.Notes.Dtos;
+using Microsoft.AspNetCore.Http;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.CQRS;
 using NoteKeeper.Domain.Common;
@@ -7,56 +7,17 @@ namespace NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
 
 public class SubscribeToNoteChangesCommandHandler : ICommandHandler<SubscribeToNoteChangesCommand, DomainResult>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IAuthService _authService;
-    private readonly IRedisPubSubService<NoteDto> _redisPubSubService;
-    private readonly IRedisService _redisService;
+    private readonly INoteService _noteService;
 
-    public SubscribeToNoteChangesCommandHandler(
-        IUnitOfWork unitOfWork,
-        IAuthService authService,
-        IRedisPubSubService<NoteDto> redisPubSubService,
-        IRedisService redisService)
+    public SubscribeToNoteChangesCommandHandler(INoteService noteService)
     {
-        _unitOfWork = unitOfWork;
-        _authService = authService;
-        _redisPubSubService = redisPubSubService;
-        _redisService = redisService;
+        _noteService = noteService;
     }
 
-    public async Task SubscribeToNoteChangesAsync(Guid noteUuid)
+    public async Task<DomainResult> HandleAsync(SubscribeToNoteChangesCommand command, CancellationToken cancellationToken)
     {
-        var noteUuidString = noteUuid.ToString();
+        await _noteService.SubscribeToNoteChangesAsync(command.NoteUuid);
 
-        await _redisPubSubService.SubscribeToChannelAsync(noteUuidString, SubscriptionHandler);
-
-        await _redisService.AddValueToSetAsync(RedisConstants.NotesSubscriptionSetKey, noteUuidString);
+        return DomainResult.CreateBaseSuccess(null, StatusCodes.Status200OK);
     }
-
-    public async Task UnsubscribeFromNoteChangesAsync(Guid noteUuid)
-    {
-        var noteUuidString = noteUuid.ToString();
-
-        await _redisPubSubService.UnsubscribeFromChannelAsync(noteUuidString, SubscriptionHandler);
-
-        await _redisService.RemoveValueFromSetAsync(RedisConstants.NotesSubscriptionSetKey, noteUuidString);
-    }
-
-    private static void SubscriptionHandler(RedisChannel redisChannel, RedisValue redisValue)
-    {
-        const string messageTemplate = "Received a Redis message from channel '{0}': \n{1}";
-
-        Console.ForegroundColor = ConsoleColor.Cyan;
-
-        var noteDto = JsonSerializer.Deserialize<NoteDto>(redisValue!);
-
-        var serializedRedisValue = JsonSerializer.Serialize(noteDto);
-
-        var message = string.Format(CultureInfo.InvariantCulture, messageTemplate, redisChannel, serializedRedisValue);
-
-        Console.WriteLine(message);
-    }
-
-    public Task<DomainResult> HandleAsync(SubscribeToNoteChangesCommand command, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
 }

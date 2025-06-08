@@ -28,7 +28,7 @@ public class NoteFilterDto : FilterDtoBase
 
         if (UserId is not null)
         {
-            var authorIdMember = Expression.Property(note, nameof(Note.AuthorId));
+            var authorIdMember = Expression.Property(note, nameof(Note.UserId));
             var authorIdConstant = Expression.Constant(UserId);
 
             var authorIdExpression = Expression.Equal(authorIdMember, authorIdConstant);

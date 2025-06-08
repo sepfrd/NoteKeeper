@@ -47,7 +47,7 @@
     <data name="GoogleRefreshToken" xml:space="preserve">
         <value>Google refresh token request was successful.</value>
     </data>
-    <data name="OAuthSuccessTemplate" xml:space="preserve">
+    <data name="OAuthTemplate" xml:space="preserve">
         <value>{0} OAuth authentication was successful. You have successfully authorized access.</value>
     </data>
     <data name="CreateTemplate" xml:space="preserve">

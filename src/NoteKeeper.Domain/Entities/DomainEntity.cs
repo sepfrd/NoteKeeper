@@ -1,6 +1,8 @@
+using NoteKeeper.Domain.Interfaces;
+
 namespace NoteKeeper.Domain.Entities;
 
-public abstract class DomainEntity
+public abstract class DomainEntity : IEntity<long>, IAuditable, IHasUuid
 {
     protected DomainEntity()
     {
@@ -12,7 +14,7 @@ public abstract class DomainEntity
 
     public Guid Uuid { get; init; }
 
-    public DateTimeOffset CreatedAt { get; private init; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset UpdatedAt { get; set; }
 

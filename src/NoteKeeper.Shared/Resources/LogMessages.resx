@@ -41,4 +41,7 @@
     <data name="DatabasePersistenceErrorTemplate" xml:space="preserve">
         <value>Could not persist changes of entity of type {EntityType} while trying to {ActionName}.</value>
     </data>
+    <data name="DeserializationErrorTemplate" xml:space="preserve">
+        <value>Could not deserialize entity of type {SourceEntityType} while it was valid.</value>
+    </data>
 </root>

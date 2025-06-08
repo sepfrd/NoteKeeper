@@ -15,18 +15,15 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMappingService _mappingService;
-    private readonly IAuthService _authService;
     private readonly ILogger<CreateNoteCommandHandler> _logger;
 
     public CreateNoteCommandHandler(
         IUnitOfWork unitOfWork,
         IMappingService mappingService,
-        IAuthService authService,
         ILogger<CreateNoteCommandHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _mappingService = mappingService;
-        _authService = authService;
         _logger = logger;
     }
 

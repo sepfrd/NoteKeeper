@@ -1,13 +1,40 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using BCrypt.Net;
+using Mapster;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NoteKeeper.Api.Authentication;
 using NoteKeeper.Api.Transformers;
+using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
+using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
+using NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
+using NoteKeeper.Application.Features.Notes.Commands.UnsubscribeFromNoteChanges;
+using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
+using NoteKeeper.Application.Features.Notes.Dtos;
+using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
+using NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
+using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
+using NoteKeeper.Application.Features.Users.Commands.CreateUser;
+using NoteKeeper.Application.Features.Users.Dtos;
+using NoteKeeper.Application.Interfaces;
+using NoteKeeper.Application.Interfaces.CQRS;
+using NoteKeeper.Domain.Common;
+using NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Enums;
+using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
+using NoteKeeper.Infrastructure.ExternalServices;
+using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Infrastructure.Persistence;
+using NoteKeeper.Infrastructure.Services;
+using NoteKeeper.Infrastructure.Services.OAuth.V2;
+using StackExchange.Redis;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
-using CorsOptions = Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions;
 
 namespace NoteKeeper.Api.Extensions;
 
@@ -16,6 +43,8 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         var appOptions = configuration.Get<AppOptions>()!;
+
+        ConfigureMapster();
 
         services
             .AddSingleton(Options.Create(appOptions))
@@ -28,14 +57,23 @@ public static class ServiceCollectionExtensions
                     .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
                     .AddDocumentTransformer<DocumentInfoTransformer>())
             .AddApiControllers()
-            .AddRepositories()
             .AddServices()
+            .AddCommandHandlers()
+            .AddQueryHandlers()
             .AddDatabase(appOptions)
             .AddAuth()
             .AddJsonSerializerOptions()
             .AddRedisConnectionMultiplexer(appOptions.RedisOptions)
             .AddExternalServices()
-            .AddCors(appOptions.CorsOptions);
+            .AddCors(appOptions.CorsOptions)
+            .AddSingleton<IDbConnectionPool, DbConnectionPool>(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
+
+                DbConnectionPool.Initialize(options.DatabaseConnectionString);
+
+                return DbConnectionPool.Instance;
+            });
 
         return services;
     }
@@ -51,25 +89,33 @@ public static class ServiceCollectionExtensions
             .Services
             .AddEndpointsApiExplorer();
 
-    public static IServiceCollection AddRepositories(this IServiceCollection services) =>
-        services
-            .AddScoped<IUserRepository, UserRepository>()
-            .AddScoped<IRepositoryBase<Note>, RepositoryBase<Note>>()
-            .AddScoped<IRepositoryBase<GoogleToken>, RepositoryBase<GoogleToken>>()
-            .AddScoped<IRepositoryBase<NotionToken>, RepositoryBase<NotionToken>>();
-
     public static IServiceCollection AddServices(this IServiceCollection services) =>
         services
             .AddScoped<INoteService, NoteService>()
-            .AddScoped<IUserService, UserService>()
             .AddScoped<IAuthService, AuthService>()
             .AddScoped<ITokenService, TokenService>()
             .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
-            .AddScoped<INotionOAuth2Service, NotionOAuth2Service>();
+            .AddScoped<INotionOAuth2Service, NotionOAuth2Service>()
+            .AddScoped<IMappingService, MappingService>();
+
+    public static IServiceCollection AddCommandHandlers(this IServiceCollection services) =>
+        services
+            .AddScoped<ICommandHandler<CreateUserCommand, DomainResult<UserDto>>, CreateUserCommandHandler>()
+            .AddScoped<ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>>, CreateNoteCommandHandler>()
+            .AddScoped<ICommandHandler<DeleteNoteCommand, DomainResult>, DeleteNoteCommandHandler>()
+            .AddScoped<ICommandHandler<SubscribeToNoteChangesCommand, DomainResult>, SubscribeToNoteChangesCommandHandler>()
+            .AddScoped<ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult>, UnsubscribeFromNoteChangesCommandHandler>()
+            .AddScoped<ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>>, UpdateNoteCommandHandler>();
+
+    public static IServiceCollection AddQueryHandlers(this IServiceCollection services) =>
+        services
+            .AddScoped<IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>, GetAllNotesByFilterQueryHandler>()
+            .AddScoped<IQueryHandler<GetAllNotesCountQuery, DomainResult<long>>, GetAllNotesCountQueryHandler>()
+            .AddScoped<IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>>, GetNoteByUuidQueryHandler>();
 
     public static IServiceCollection AddDatabase(this IServiceCollection services, AppOptions appOptions) =>
         services
-            .AddDbContext<NoteKeeperDbContext>(options =>
+            .AddDbContext<IUnitOfWork, UnitOfWork>(options =>
                 options
                     .UseNpgsql(appOptions.DatabaseConnectionString)
                     .EnableSensitiveDataLogging()
@@ -172,6 +218,40 @@ public static class ServiceCollectionExtensions
                         .AllowAnyMethod()
                         .AllowAnyHeader());
         });
+
+    private static void ConfigureMapster()
+    {
+        TypeAdapterConfig<GoogleIdTokenPayloadDto, User>
+            .ForType()
+            .Map(user => user.Username, src => src.Subject)
+            .Map(user => user.Email, src => src.Email)
+            .Map(user => user.FirstName, src => src.GivenName)
+            .Map(user => user.LastName, src => src.FamilyName)
+            .Map(user => user.RegistrationType, src => RegistrationType.Google);
+
+        TypeAdapterConfig<GoogleTokenResponseDto, GoogleToken>
+            .ForType()
+            .Map(googleToken => googleToken.AccessToken, src => src.AccessToken)
+            .Map(googleToken => googleToken.ExpiresAt, src => DateTimeOffset.UtcNow.AddSeconds(src.ExpiresIn))
+            .Map(googleToken => googleToken.RefreshToken, src => src.RefreshToken!)
+            .Map(googleToken => googleToken.Scope, src => src.Scope)
+            .Map(googleToken => googleToken.TokenType, src => src.TokenType)
+            .Map(googleToken => googleToken.IdToken, src => src.IdToken);
+
+        // TODO: handle null values of the src
+        TypeAdapterConfig<NotionTokenResponseDto, NotionToken>
+            .ForType()
+            .Map(notionToken => notionToken.AccessToken, src => src.AccessToken)
+            .Map(notionToken => notionToken.TokenType, src => src.TokenType)
+            .Map(notionToken => notionToken.BotId, src => src.BotId)
+            .Map(notionToken => notionToken.WorkspaceName, src => src.WorkspaceName)
+            .Map(notionToken => notionToken.WorkspaceIconUrl, src => src.WorkspaceIcon)
+            .Map(notionToken => notionToken.WorkspaceId, src => src.WorkspaceId)
+            .Map(notionToken => notionToken.NotionId, src => src.Owner!.User!.Id)
+            .Map(notionToken => notionToken.Name, src => src.Owner!.User!.Name)
+            .Map(notionToken => notionToken.AvatarUrl, src => src.Owner!.User!.AvatarUrl)
+            .Map(notionToken => notionToken.NotionEmail, src => src.Owner!.User!.Person!.Email);
+    }
 
     private static DbContext SeedDatabase(this DbContext dbContext)
     {

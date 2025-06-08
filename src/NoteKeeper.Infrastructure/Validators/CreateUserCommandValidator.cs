@@ -9,15 +9,15 @@ public class CreateUserCommandValidator : AbstractValidator<CreateUserCommand>
 {
     public CreateUserCommandValidator()
     {
-        RuleFor(createUserRequestDto => createUserRequestDto.Email)
+        RuleFor(createUserCommand => createUserCommand.Email)
             .Matches(RegexPatternConstants.EmailRegexPattern)
             .WithMessage(ErrorMessages.EmailValidation);
 
-        RuleFor(createUserRequestDto => createUserRequestDto.Username)
+        RuleFor(createUserCommand => createUserCommand.Username)
             .Matches(RegexPatternConstants.UsernameRegexPattern)
             .WithMessage(ErrorMessages.UsernameValidation);
 
-        RuleFor(createUserRequestDto => createUserRequestDto.Password)
+        RuleFor(createUserCommand => createUserCommand.Password)
             .Matches(RegexPatternConstants.PasswordRegexPattern)
             .WithMessage(ErrorMessages.PasswordValidation);
     }

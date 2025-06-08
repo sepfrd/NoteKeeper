@@ -99,6 +99,14 @@ public class AuthService : IAuthService
             DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
     }
 
+    public string GetSignedInUserUuid() =>
+        _httpContextAccessor
+            .HttpContext?
+            .User
+            .Claims
+            .First(claim => claim.Type == JwtExtendedConstants.JwtUuidClaimType)
+            .Value!;
+
     public async Task<User?> GetSignedInUserAsync(
         IEnumerable<Expression<Func<User, object?>>>? includes = null,
         CancellationToken cancellationToken = default)

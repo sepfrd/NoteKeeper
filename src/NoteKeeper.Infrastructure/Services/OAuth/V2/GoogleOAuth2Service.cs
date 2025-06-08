@@ -1,20 +1,22 @@
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
-using NoteKeeper.Infrastructure.ExternalServices.Google;
 using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Infrastructure.Persistence;
+using NoteKeeper.Shared.Constants;
 using NoteKeeper.Shared.Resources;
 
 namespace NoteKeeper.Infrastructure.Services.OAuth.V2;
@@ -24,32 +26,38 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly UnitOfWork _unitOfWork;
     private readonly IAuthService _authService;
+    private readonly IMappingService _mappingService;
     private readonly ITokenService _tokenService;
+    private readonly ILogger<GoogleOAuth2Service> _logger;
     private readonly GoogleOAuthOptions _googleOAuthOptions;
 
     public GoogleOAuth2Service(
         IHttpClientFactory httpClientFactory,
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
-        IUnitOfWork unitOfWork,
+        UnitOfWork unitOfWork,
         IAuthService authService,
+        IMappingService mappingService,
         ITokenService tokenService,
-        IOptions<AppOptions> appOptions)
+        IOptions<AppOptions> appOptions,
+        ILogger<GoogleOAuth2Service> logger)
     {
         _httpClientFactory = httpClientFactory;
         _memoryCache = memoryCache;
         _memoryCacheEntryOptions = memoryCacheEntryOptions;
         _unitOfWork = unitOfWork;
         _authService = authService;
+        _mappingService = mappingService;
         _tokenService = tokenService;
+        _logger = logger;
         _googleOAuthOptions = appOptions.Value.GoogleOAuthOptions;
     }
 
     public async Task<DomainResult<string?>> AuthenticateWithGoogleAsync(CancellationToken cancellationToken = default)
     {
-        var user = await GetSignedInUserAsync(cancellationToken: cancellationToken);
+        var user = await _authService.GetSignedInUserAsync(cancellationToken: cancellationToken);
 
         if (user is not null)
         {
@@ -63,7 +71,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     {
         var username = RetrieveUsernameFromMemoryCache(requestDto.State);
 
-        if (username != CustomOAuthConstants.GoogleSignupPendingUsername)
+        if (username != CustomOAuthConstants.GoogleOidcPendingUsername)
         {
             return DomainResult<string?>.CreateFailure(string.Empty, StatusCodes.Status400BadRequest);
         }
@@ -102,9 +110,33 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         if (user is null) // Then this is a signup request
         {
-            user = idTokenDto.ToUserDomainEntity();
+            user = _mappingService.Map<GoogleIdTokenPayloadDto, User>(idTokenDto);
 
-            user.GoogleToken = googleTokenResponseDto.ToGoogleTokenDomainEntity();
+            if (user is null)
+            {
+                _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(GoogleIdTokenPayloadDto), typeof(User));
+
+                return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
+            }
+
+            var googleToken = _mappingService.Map<GoogleTokenResponseDto, GoogleToken>(googleTokenResponseDto);
+
+            if (googleToken is null)
+            {
+                _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(GoogleTokenResponseDto), typeof(GoogleToken));
+
+                return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
+            }
+
+            await _unitOfWork.GoogleTokenRepository.CreateAsync(googleToken, cancellationToken);
+
+            user.ExternalProviderAccounts.Add(new ExternalProviderAccount
+            {
+                ProviderName = ExternalProviderConstants.Google,
+                ProviderType = ProviderType.Oidc,
+                LinkedAt = DateTimeOffset.UtcNow,
+                UserId = user.Id
+            });
 
             var createdUser = await _unitOfWork.UserRepository.CreateAsync(user, cancellationToken);
 
@@ -112,6 +144,8 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
             if (insertCount < 2)
             {
+                _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(GoogleToken), StringConstants.CreateActionName);
+
                 return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
             }
 
@@ -127,19 +161,51 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
         // This is a signin request
 
-        user.GoogleToken!.AccessToken = googleTokenResponseDto.AccessToken;
-        user.GoogleToken.RefreshToken = googleTokenResponseDto.RefreshToken ?? user.GoogleToken.RefreshToken;
-        user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
-        user.GoogleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
-        user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
-        user.GoogleToken.Scope = googleTokenResponseDto.Scope;
-        user.GoogleToken.MarkAsUpdated();
+        var existingGoogleToken = await _unitOfWork
+            .GoogleTokenRepository
+            .GetOneAsync(
+                token => token.UserId == user.Id,
+                cancellationToken: cancellationToken);
+
+        if (existingGoogleToken is null)
+        {
+            existingGoogleToken = _mappingService.Map<GoogleTokenResponseDto, GoogleToken>(googleTokenResponseDto);
+
+            if (existingGoogleToken is null)
+            {
+                _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(GoogleTokenResponseDto), typeof(GoogleToken));
+
+                return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        existingGoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
+        existingGoogleToken.RefreshToken = googleTokenResponseDto.RefreshToken ?? existingGoogleToken.RefreshToken;
+        existingGoogleToken.IdToken = googleTokenResponseDto.IdToken;
+        existingGoogleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        existingGoogleToken.TokenType = googleTokenResponseDto.TokenType;
+        existingGoogleToken.Scope = googleTokenResponseDto.Scope;
+        existingGoogleToken.MarkAsUpdated();
+
+        if (user.ExternalProviderAccounts.All(account => account.ProviderName != ExternalProviderConstants.Google))
+        {
+            user.ExternalProviderAccounts.Add(new ExternalProviderAccount
+            {
+                ProviderName = ExternalProviderConstants.Google,
+                ProviderType = ProviderType.Oidc,
+                LinkedAt = DateTimeOffset.UtcNow,
+                UserId = user.Id
+            });
+        }
+
         user.MarkAsUpdated();
 
         var updateCount = await _unitOfWork.CommitChangesAsync(cancellationToken);
 
         if (updateCount < 2)
         {
+            _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(GoogleToken), StringConstants.CreateActionName);
+
             return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
         }
 
@@ -155,8 +221,9 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
     public async Task<DomainResult<string?>> RevokeTokensAsync(CancellationToken cancellationToken)
     {
-        var user = await GetSignedInUserAsync(
-            [user => user.GoogleToken],
+        // TODO: use two queries instead of a join
+        var user = await _authService.GetSignedInUserAsync(
+            [user => user.ExternalProviderAccounts],
             cancellationToken);
 
         if (user is null)
@@ -164,49 +231,82 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status401Unauthorized);
         }
 
-        if (user.GoogleToken is null)
+        var account = user
+            .ExternalProviderAccounts
+            .FirstOrDefault(account => account.ProviderName != ExternalProviderConstants.Google);
+
+        if (account is null)
         {
-            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status400BadRequest);
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status403Forbidden);
+        }
+
+        var googleToken = await _unitOfWork
+            .GoogleTokenRepository
+            .GetOneAsync(
+                token => token.UserId == user.Id,
+                cancellationToken: cancellationToken);
+
+        if (googleToken is null)
+        {
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
         }
 
         var revocationResult =
-            user.GoogleToken.IsExpired
-                ? await GoogleRevokeTokenAsync(user.GoogleToken.RefreshToken, cancellationToken)
-                : await GoogleRevokeTokenAsync(user.GoogleToken.AccessToken, cancellationToken);
+            googleToken.IsExpired
+                ? await GoogleRevokeTokenAsync(googleToken.RefreshToken, cancellationToken)
+                : await GoogleRevokeTokenAsync(googleToken.AccessToken, cancellationToken);
 
         if (!revocationResult.IsSuccess)
         {
             return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status500InternalServerError);
         }
 
-        _unitOfWork.GoogleTokenRepository.Delete(user.GoogleToken);
+        _unitOfWork.GoogleTokenRepository.Delete(googleToken);
+        _unitOfWork.ExternalProviderAccountRepository.Delete(account);
 
         user.MarkAsUpdated();
 
         var updateCount = await _unitOfWork.CommitChangesAsync(cancellationToken);
 
-        if (updateCount > 1)
+        if (updateCount <= 1)
         {
-            return DomainResult<string?>.CreateSuccess(null, StatusCodes.Status200OK, SuccessMessages.GoogleTokenRevocation);
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status500InternalServerError);
         }
 
-        return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status500InternalServerError);
+        _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(GoogleToken), StringConstants.DeleteActionName);
+
+        return DomainResult<string?>.CreateSuccess(null, StatusCodes.Status200OK, SuccessMessages.GoogleTokenRevocation);
     }
 
     public async Task<DomainResult<string?>> GoogleRefreshAccessTokenAsync(CancellationToken cancellationToken = default)
     {
-        var user = await GetSignedInUserAsync(
-            [user => user.GoogleToken],
+        var user = await _authService.GetSignedInUserAsync(
+            [user => user.ExternalProviderAccounts],
             cancellationToken);
 
         if (user is null)
         {
-            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleRefreshToken, StatusCodes.Status401Unauthorized);
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status401Unauthorized);
         }
 
-        if (user.GoogleToken is null)
+        var account = user
+            .ExternalProviderAccounts
+            .FirstOrDefault(account => account.ProviderName != ExternalProviderConstants.Google);
+
+        if (account is null)
         {
-            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleRefreshToken, StatusCodes.Status400BadRequest);
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleTokenRevocation, StatusCodes.Status403Forbidden);
+        }
+
+        var googleToken = await _unitOfWork
+            .GoogleTokenRepository
+            .GetOneAsync(
+                token => token.UserId == user.Id,
+                cancellationToken: cancellationToken);
+
+        if (googleToken is null)
+        {
+            return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleOidc, StatusCodes.Status500InternalServerError);
         }
 
         var httpClient = _httpClientFactory.CreateClient();
@@ -220,7 +320,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             new(CustomOAuthConstants.ClientIdParameterName, _googleOAuthOptions.ClientId),
             new(CustomOAuthConstants.ClientSecretParameterName, _googleOAuthOptions.ClientSecret),
             new(CustomOAuthConstants.GrantTypeParameterName, CustomOAuthConstants.RefreshTokenGrantType),
-            new(CustomOAuthConstants.RefreshTokenParameterName, user.GoogleToken!.RefreshToken)
+            new(CustomOAuthConstants.RefreshTokenParameterName, googleToken.RefreshToken)
         ];
 
         var content = new FormUrlEncodedContent(nameValueCollection);
@@ -243,13 +343,14 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
             return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleRefreshToken, StatusCodes.Status500InternalServerError);
         }
 
-        user.GoogleToken.Scope = googleTokenResponseDto.Scope;
-        user.GoogleToken.AccessToken = googleTokenResponseDto.AccessToken;
-        user.GoogleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
-        user.GoogleToken.IdToken = googleTokenResponseDto.IdToken;
-        user.GoogleToken.TokenType = googleTokenResponseDto.TokenType;
-        user.GoogleToken.MarkAsUpdated();
+        googleToken.Scope = googleTokenResponseDto.Scope;
+        googleToken.AccessToken = googleTokenResponseDto.AccessToken;
+        googleToken.ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(googleTokenResponseDto.ExpiresIn);
+        googleToken.IdToken = googleTokenResponseDto.IdToken;
+        googleToken.TokenType = googleTokenResponseDto.TokenType;
+        googleToken.MarkAsUpdated();
 
+        account.MarkAsUpdated();
         user.MarkAsUpdated();
 
         var updateCount = await _unitOfWork.CommitChangesAsync(cancellationToken);
@@ -258,6 +359,8 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         {
             return DomainResult<string?>.CreateSuccess(null, StatusCodes.Status200OK, SuccessMessages.GoogleRefreshToken);
         }
+
+        _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(GoogleToken), StringConstants.UpdateActionName);
 
         return DomainResult<string?>.CreateFailure(ErrorMessages.GoogleRefreshToken, StatusCodes.Status500InternalServerError);
     }
@@ -301,7 +404,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
     {
         var state = Guid.NewGuid().ToString();
 
-        StoreStateAndUsernameInMemoryCache(state, CustomOAuthConstants.GoogleSignupPendingUsername);
+        StoreStateAndUsernameInMemoryCache(state, CustomOAuthConstants.GoogleOidcPendingUsername);
 
         var scopes = string.Join(' ', OAuthScopeConstants.EmailScope, OAuthScopeConstants.ProfileScope, OAuthScopeConstants.OpenIdScope);
 

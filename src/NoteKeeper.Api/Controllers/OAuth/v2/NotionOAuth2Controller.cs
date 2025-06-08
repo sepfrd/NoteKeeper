@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers.OAuth.v2;
 
@@ -19,7 +21,7 @@ public class NotionOAuth2Controller : ControllerBase
     {
         var result = await _notionOAuth2Service.UseNotionOAuth2Async(cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet]
@@ -34,7 +36,7 @@ public class NotionOAuth2Controller : ControllerBase
 
         var result = await _notionOAuth2Service.NotionExchangeCodeForTokensAsync(exchangeRequestDto, cancellationToken);
 
-        return StatusCode((int)result.HttpStatusCode, result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpOptions]

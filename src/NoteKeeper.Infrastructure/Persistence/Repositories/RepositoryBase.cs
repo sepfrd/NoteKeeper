@@ -5,14 +5,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Application.Interfaces.Repositories;
 using NoteKeeper.Domain.Common;
-using NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Interfaces;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Infrastructure.Persistence.Repositories;
 
 public abstract class RepositoryBase<TEntity, TKey> : IRepositoryBase<TEntity, TKey>
-    where TEntity : DomainEntity
+    where TEntity : class, IEntity<TKey>
     where TKey : IEquatable<TKey>
 {
     private readonly string _tableName;
@@ -455,7 +455,7 @@ public abstract class RepositoryBase<TEntity, TKey> : IRepositoryBase<TEntity, T
         return count;
     }
 
-    public TEntity? Update(TEntity entityToUpdate) =>
+    public TEntity Update(TEntity entityToUpdate) =>
         _dbSet
             .Update(entityToUpdate)
             .Entity;

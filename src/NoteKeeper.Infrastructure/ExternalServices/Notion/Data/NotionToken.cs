@@ -1,6 +1,8 @@
+using NoteKeeper.Domain.Interfaces;
+
 namespace NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 
-public class NotionToken
+public class NotionToken : IEntity<long>
 {
     public long Id { get; set; }
 

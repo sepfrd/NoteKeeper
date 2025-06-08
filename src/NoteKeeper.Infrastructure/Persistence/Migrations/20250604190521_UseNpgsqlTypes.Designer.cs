@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NoteKeeper.DataAccess;
+using NoteKeeper.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace NoteKeeper.DataAccess.Migrations
 {
-    [DbContext(typeof(NoteKeeperDbContext))]
+    [DbContext(typeof(UnitOfWork))]
     [Migration("20250604190521_UseNpgsqlTypes")]
     partial class UseNpgsqlTypes
     {

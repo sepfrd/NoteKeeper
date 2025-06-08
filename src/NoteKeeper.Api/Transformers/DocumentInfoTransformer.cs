@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 
 namespace NoteKeeper.Api.Transformers;
 

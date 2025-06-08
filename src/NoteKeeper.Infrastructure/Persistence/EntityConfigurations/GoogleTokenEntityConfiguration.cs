@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NoteKeeper.Domain.Entities;
-using NoteKeeper.Infrastructure.ExternalServices.Google;
 using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 using NpgsqlTypes;
 

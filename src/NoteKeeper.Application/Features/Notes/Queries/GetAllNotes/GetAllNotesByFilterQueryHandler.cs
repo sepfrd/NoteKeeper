@@ -9,8 +9,7 @@ using NoteKeeper.Shared.Resources;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
 
-public class GetAllNotesByFilterQueryHandler
-    : IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>
+public class GetAllNotesByFilterQueryHandler : IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMappingService _mappingService;
@@ -28,7 +27,7 @@ public class GetAllNotesByFilterQueryHandler
 
     public async Task<PaginatedDomainResult<IEnumerable<NoteDto>>> HandleAsync(GetAllNotesByFilterQuery request, CancellationToken cancellationToken)
     {
-        var filterExpression = request.FilterDto.ToExpression() ?? (_ => true);
+        var filterExpression = request.FilterDto?.ToExpression() ?? (_ => true);
 
         var notesResponse = await _unitOfWork.NoteRepository.GetAllAsync(
             filter: filterExpression,

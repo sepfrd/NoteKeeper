@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using NoteKeeper.Infrastructure.Common.Dtos;
+using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -30,12 +32,12 @@ public class AuthController : ControllerBase
             });
         }
 
-        return StatusCode((int)result.HttpStatusCode, new ResponseDto<string?>
+        return StatusCode(result.StatusCode, new
         {
             Data = result.Data?.Jwt,
-            IsSuccess = result.IsSuccess,
-            Message = result.Message,
-            HttpStatusCode = result.HttpStatusCode
+            result.IsSuccess,
+            result.Message,
+            result.StatusCode
         });
     }
 
@@ -70,12 +72,12 @@ public class AuthController : ControllerBase
             });
         }
 
-        return StatusCode((int)result.HttpStatusCode, new ResponseDto<string?>
+        return StatusCode(result.StatusCode, new
         {
             Data = result.Data?.Jwt,
-            IsSuccess = result.IsSuccess,
-            Message = result.Message,
-            HttpStatusCode = result.HttpStatusCode
+            result.IsSuccess,
+            result.Message,
+            result.StatusCode
         });
     }
 
