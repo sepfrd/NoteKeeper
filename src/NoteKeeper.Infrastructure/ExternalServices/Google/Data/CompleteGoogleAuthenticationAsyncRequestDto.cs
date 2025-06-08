@@ -1,4 +1,4 @@
-namespace NoteKeeper.Infrastructure.Common.Dtos.Google;
+namespace NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 
 public record CompleteGoogleAuthenticationAsyncRequestDto(
     string State,

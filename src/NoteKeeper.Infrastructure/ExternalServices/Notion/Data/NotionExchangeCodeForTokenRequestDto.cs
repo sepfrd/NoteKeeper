@@ -1,4 +1,4 @@
-namespace NoteKeeper.Infrastructure.Common.Dtos.Notion;
+namespace NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 
 public record NotionExchangeCodeForTokenRequestDto(
     string State,

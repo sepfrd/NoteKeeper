@@ -77,4 +77,7 @@
     <data name="IdenticalNewPropertyValues" xml:space="preserve">
         <value>At least one new property value must be different from its current value.</value>
     </data>
+    <data name="NotionOAuth" xml:space="preserve">
+        <value>Notion OAuth 2.0 request failed.</value>
+    </data>
 </root>

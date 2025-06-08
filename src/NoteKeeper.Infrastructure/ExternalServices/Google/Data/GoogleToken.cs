@@ -1,7 +1,11 @@
-namespace NoteKeeper.Domain.Entities;
+using NoteKeeper.Domain.Entities;
 
-public class GoogleToken : DomainEntity
+namespace NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+
+public class GoogleToken
 {
+    public long Id { get; set; }
+
     public required string AccessToken { get; set; }
 
     public required DateTimeOffset ExpiresAt { get; set; }
@@ -15,8 +19,6 @@ public class GoogleToken : DomainEntity
     public string? IdToken { get; set; }
 
     public long UserId { get; set; }
-
-    public User? User { get; set; }
 
     public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
 }

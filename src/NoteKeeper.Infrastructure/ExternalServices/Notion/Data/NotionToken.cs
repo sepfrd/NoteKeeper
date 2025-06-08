@@ -1,7 +1,9 @@
-namespace NoteKeeper.Domain.Entities;
+namespace NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 
-public class NotionToken : DomainEntity
+public class NotionToken
 {
+    public long Id { get; set; }
+
     public required string AccessToken { get; set; }
 
     public DateTimeOffset? ExpiresAt { get; set; }
@@ -25,8 +27,6 @@ public class NotionToken : DomainEntity
     public string? NotionEmail { get; set; }
 
     public long UserId { get; set; }
-
-    public User? User { get; set; }
 
     public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
 }

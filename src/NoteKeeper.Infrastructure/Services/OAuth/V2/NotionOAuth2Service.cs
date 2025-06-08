@@ -10,12 +10,15 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.Repositories;
+using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
-using NoteKeeper.Infrastructure.Common.Dtos.Notion;
+using NoteKeeper.Infrastructure.ExternalServices.Notion;
+using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Shared.Resources;
 
 namespace NoteKeeper.Infrastructure.Services.OAuth.V2;
 
@@ -46,19 +49,15 @@ public class NotionOAuth2Service : INotionOAuth2Service
         _notionOAuthOptions = appOptions.Value.NotionOAuthOptions;
     }
 
-    public async Task<ResponseDto<string?>> UseNotionOAuth2Async(CancellationToken cancellationToken = default)
+    public async Task<DomainResult<string?>> UseNotionOAuth2Async(CancellationToken cancellationToken = default)
     {
         var user = await _authService.GetSignedInUserAsync(
-            users => users.Include(user => user.NotionToken),
+            [userEntity => userEntity.ExternalProviderAccounts],
             cancellationToken);
 
         if (user is null)
         {
-            return new ResponseDto<string?>
-            {
-                IsSuccess = false,
-                HttpStatusCode = HttpStatusCode.Unauthorized
-            };
+            return DomainResult<string?>.CreateFailure(ErrorMessages., StatusCodes.Status401Unauthorized);
         }
 
         if (user.NotionToken is null)
@@ -66,7 +65,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return NotionGenerateOAuth2RequestUrl(user);
         }
 
-        return new ResponseDto<string?>
+        return new DomainResult<string?>
         {
             IsSuccess = true,
             Message = _successMessage,
@@ -74,7 +73,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         };
     }
 
-    private ResponseDto<string?> NotionGenerateOAuth2RequestUrl(User user)
+    private DomainResult<string?> NotionGenerateOAuth2RequestUrl(User user)
     {
         var state = Guid.NewGuid().ToString();
 
@@ -91,7 +90,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         var finalUrl = QueryHelpers.AddQueryString(_notionOAuthOptions.AuthUri, queryParameters);
 
-        return new ResponseDto<string?>
+        return new DomainResult<string?>
         {
             Data = finalUrl,
             IsSuccess = true,
@@ -99,7 +98,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         };
     }
 
-    public async Task<ResponseDto<string?>> NotionExchangeCodeForTokensAsync(
+    public async Task<DomainResult<string?>> NotionExchangeCodeForTokensAsync(
         NotionExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto,
         CancellationToken cancellationToken = default)
     {
@@ -133,7 +132,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         if (!response.IsSuccessStatusCode)
         {
-            return new ResponseDto<string?>
+            return new DomainResult<string?>
             {
                 IsSuccess = false,
                 Message = _failureMessage,
@@ -147,7 +146,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         if (notionTokenResponseDto is null)
         {
-            return new ResponseDto<string?>
+            return new DomainResult<string?>
             {
                 IsSuccess = false,
                 Message = _failureMessage,
@@ -162,7 +161,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         if (!isNotionTokenStored)
         {
-            return new ResponseDto<string?>
+            return new DomainResult<string?>
             {
                 IsSuccess = false,
                 Message = _failureMessage,
@@ -170,7 +169,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             };
         }
 
-        return new ResponseDto<string?>
+        return new DomainResult<string?>
         {
             IsSuccess = true,
             Message = _successMessage,
@@ -190,7 +189,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         var user = await _userRepository
             .GetByIdAsync(
                 userId.Value,
-                users => users.Include(user => user.NotionToken),
+                [user => user.NotionToken],
                 cancellationToken);
 
         if (user is null)

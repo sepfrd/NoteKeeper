@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NoteKeeper.Application.Interfaces;
@@ -98,13 +99,25 @@ public class AuthService : IAuthService
             DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
     }
 
-    public string GetSignedInUserUuid() =>
-        _httpContextAccessor
+    public async Task<User?> GetSignedInUserAsync(
+        IEnumerable<Expression<Func<User, object?>>>? includes = null,
+        CancellationToken cancellationToken = default)
+    {
+        var userUuid = _httpContextAccessor
             .HttpContext?
             .User
             .Claims
             .First(claim => claim.Type == JwtExtendedConstants.JwtUuidClaimType)
             .Value!;
+
+        var user = await _unitOfWork.UserRepository.GetOneAsync(
+            user => user.Uuid == Guid.Parse(userUuid),
+            includes,
+            disableTracking: true,
+            cancellationToken: cancellationToken);
+
+        return user;
+    }
 
     private bool IsSignedIn() =>
         _httpContextAccessor.HttpContext!.User.Identity is not null && _httpContextAccessor.HttpContext!.User.Identity.IsAuthenticated;

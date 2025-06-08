@@ -1,5 +1,6 @@
 using NoteKeeper.Domain.Common;
-using NoteKeeper.Infrastructure.Common.Dtos.Google;
+using NoteKeeper.Infrastructure.ExternalServices.Google;
+using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

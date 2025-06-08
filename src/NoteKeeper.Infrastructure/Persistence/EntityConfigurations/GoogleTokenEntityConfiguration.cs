@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Infrastructure.ExternalServices.Google;
+using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 using NpgsqlTypes;
 
 namespace NoteKeeper.Infrastructure.Persistence.EntityConfigurations;
@@ -9,11 +11,6 @@ public class GoogleTokenEntityConfiguration : IEntityTypeConfiguration<GoogleTok
 {
     public void Configure(EntityTypeBuilder<GoogleToken> builder)
     {
-        builder
-            .HasOne<User>(googleToken => googleToken.User)
-            .WithOne(user => user.GoogleToken)
-            .HasForeignKey<GoogleToken>(googleToken => googleToken.UserId);
-
         builder
             .Property(googleToken => googleToken.AccessToken)
             .HasColumnType(nameof(NpgsqlDbType.Varchar))

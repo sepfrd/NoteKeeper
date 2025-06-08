@@ -18,9 +18,7 @@ public class User : DomainEntity
 
     public string FullName => FirstName + ' ' + LastName;
 
-    public GoogleToken? GoogleToken { get; set; }
-
-    public NotionToken? NotionToken { get; set; }
+    public ICollection<ExternalProviderAccount>? ExternalProviderAccounts { get; set; }
 
     public ICollection<Note> Notes { get; set; } = [];
 }

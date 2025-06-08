@@ -12,7 +12,8 @@ using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
-using NoteKeeper.Infrastructure.Common.Dtos.Google;
+using NoteKeeper.Infrastructure.ExternalServices.Google;
+using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Shared.Resources;
 
@@ -346,19 +347,6 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         var googleTokenRevocationResponseDto = JsonSerializer.Deserialize<GoogleTokenRevocationResponseDto>(responseString);
 
         return DomainResult<string?>.CreateFailure(googleTokenRevocationResponseDto!.ErrorDescription ?? string.Empty, (int)response.StatusCode);
-    }
-
-    private async Task<User?> GetSignedInUserAsync(IEnumerable<Expression<Func<User, object?>>>? includes = null, CancellationToken cancellationToken = default)
-    {
-        var userUuid = _authService.GetSignedInUserUuid();
-
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Uuid == Guid.Parse(userUuid),
-            includes,
-            disableTracking: true,
-            cancellationToken: cancellationToken);
-
-        return user;
     }
 
     private void StoreStateAndUsernameInMemoryCache(string state, string username) =>

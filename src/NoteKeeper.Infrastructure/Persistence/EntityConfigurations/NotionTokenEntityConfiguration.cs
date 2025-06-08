@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NoteKeeper.Domain.Entities;
+using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
 using NpgsqlTypes;
 
 namespace NoteKeeper.Infrastructure.Persistence.EntityConfigurations;
@@ -9,11 +9,6 @@ public class NotionTokenEntityConfiguration : IEntityTypeConfiguration<NotionTok
 {
     public void Configure(EntityTypeBuilder<NotionToken> builder)
     {
-        builder
-            .HasOne<User>(notionToken => notionToken.User)
-            .WithOne(user => user.NotionToken)
-            .HasForeignKey<NotionToken>(notionToken => notionToken.UserId);
-
         builder
             .Property(notionToken => notionToken.AccessToken)
             .HasColumnType(nameof(NpgsqlDbType.Varchar))
