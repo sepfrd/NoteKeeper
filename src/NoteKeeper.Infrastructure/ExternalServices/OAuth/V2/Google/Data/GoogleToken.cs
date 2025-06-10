@@ -1,6 +1,6 @@
 using NoteKeeper.Domain.Interfaces;
 
-namespace NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
 
 public class GoogleToken : IEntity<long>, IAuditable
 {
@@ -14,8 +14,6 @@ public class GoogleToken : IEntity<long>, IAuditable
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset UpdatedAt { get; set; }
-
-    public void MarkAsUpdated() => UpdatedAt = DateTimeOffset.UtcNow;
 
     public required string AccessToken { get; set; }
 
@@ -32,4 +30,6 @@ public class GoogleToken : IEntity<long>, IAuditable
     public long UserId { get; set; }
 
     public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
+
+    public void MarkAsUpdated() => UpdatedAt = DateTimeOffset.UtcNow;
 }

@@ -1,5 +1,5 @@
 using NoteKeeper.Domain.Common;
-using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

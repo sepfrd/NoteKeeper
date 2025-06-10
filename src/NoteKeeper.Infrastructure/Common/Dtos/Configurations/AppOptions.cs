@@ -12,6 +12,8 @@ public record AppOptions
 
     public required GoogleOAuthOptions GoogleOAuthOptions { get; set; }
 
+    public required HttpClientOptions HttpClientOptions { get; set; }
+
     public required string DatabaseConnectionString { get; set; }
 
     public required string BaseApiUrl { get; set; }

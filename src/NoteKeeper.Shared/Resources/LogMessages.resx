@@ -44,4 +44,7 @@
     <data name="DeserializationErrorTemplate" xml:space="preserve">
         <value>Could not deserialize entity of type {SourceEntityType} while it was valid.</value>
     </data>
+    <data name="ExceptionTemplate" xml:space="preserve">
+        <value>Exception Details: {ExceptionDetails}</value>
+    </data>
 </root>

@@ -15,18 +15,19 @@ using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
-using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Shared.Constants;
 using NoteKeeper.Shared.Resources;
 
-namespace NoteKeeper.Infrastructure.Services.OAuth.V2;
+namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion;
 
 public class NotionOAuth2Service : INotionOAuth2Service
 {
     private readonly UnitOfWork _unitOfWork;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
     private readonly IMemoryCache _memoryCache;
     private readonly MemoryCacheEntryOptions _memoryCacheEntryOptions;
     private readonly IAuthService _authService;
@@ -46,7 +47,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
     public NotionOAuth2Service(
         UnitOfWork unitOfWork,
-        IHttpClientFactory httpClientFactory,
+        HttpClient httpClient,
         IMemoryCache memoryCache,
         MemoryCacheEntryOptions memoryCacheEntryOptions,
         IAuthService authService,
@@ -55,7 +56,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         ILogger<NotionOAuth2Service> logger)
     {
         _unitOfWork = unitOfWork;
-        _httpClientFactory = httpClientFactory;
+        _httpClient = httpClient;
         _memoryCache = memoryCache;
         _memoryCacheEntryOptions = memoryCacheEntryOptions;
         _authService = authService;
@@ -87,10 +88,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
         NotionExchangeCodeForTokenRequestDto exchangeCodeForTokenRequestDto,
         CancellationToken cancellationToken = default)
     {
-        var httpClient = _httpClientFactory.CreateClient();
-
-        httpClient.Timeout = TimeSpan.FromSeconds(5d);
-        httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Clear();
 
         var request = new HttpRequestMessage(HttpMethod.Post, _notionOAuthOptions.TokenUri);
 
@@ -109,11 +107,11 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.ASCII.GetBytes(authenticationString));
 
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AuthenticationSchemes.Basic.ToString(), base64EncodedAuthenticationString);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AuthenticationSchemes.Basic.ToString(), base64EncodedAuthenticationString);
 
         request.Content = content;
 
-        var response = await httpClient.SendAsync(request, cancellationToken);
+        var response = await _httpClient.SendAsync(request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -194,23 +192,50 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return false;
         }
 
-        notionToken.UserId = user.Id;
+        await using var transaction = await _unitOfWork.Database.BeginTransactionAsync(cancellationToken);
 
-        await _unitOfWork.NotionTokenRepository.CreateAsync(notionToken, cancellationToken);
+        var commitSucceeded = false;
 
-        user.ExternalProviderAccounts.Add(new ExternalProviderAccount
+        try
         {
-            ProviderName = ExternalProviderConstants.Notion,
-            ProviderType = ProviderType.OAuth,
-            LinkedAt = DateTimeOffset.UtcNow,
-            UserId = user.Id
-        });
+            notionToken.UserId = user.Id;
 
-        user.MarkAsUpdated();
+            await _unitOfWork.NotionTokenRepository.CreateAsync(notionToken, cancellationToken);
 
-        var insertCount = await _unitOfWork.CommitChangesAsync(cancellationToken);
+            user.ExternalProviderAccounts.Add(new ExternalProviderAccount
+            {
+                ProviderName = ExternalProviderConstants.Notion,
+                ProviderType = ProviderType.OAuth,
+                LinkedAt = DateTimeOffset.UtcNow,
+                UserId = user.Id
+            });
 
-        return insertCount > 0;
+            _unitOfWork.UserRepository.Update(user);
+
+            await _unitOfWork.CommitChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            commitSucceeded = true;
+
+            return commitSucceeded;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(LogMessages.DatabasePersistenceErrorTemplate, typeof(GoogleToken), StringConstants.CreateActionName);
+            _logger.LogError(exception, LogMessages.ExceptionTemplate, exception.InnerException);
+
+            await transaction.RollbackAsync(cancellationToken);
+
+            return false;
+        }
+        finally
+        {
+            if (!commitSucceeded)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+        }
     }
 
     private void StoreStateAndUserIdInMemoryCache(string state, long userId) =>

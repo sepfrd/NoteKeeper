@@ -1,5 +1,5 @@
 using NoteKeeper.Domain.Common;
-using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

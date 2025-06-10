@@ -10,14 +10,34 @@ public interface IRepositoryBase<TEntity, in TKey>
 {
     Task<TEntity?> CreateAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-    Task CreateManyAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
-
     Task<TEntity?> GetOneAsync(
         Expression<Func<TEntity, bool>> filter,
         IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
         bool useSplitQuery = false,
         bool disableTracking = false,
         CancellationToken cancellationToken = default);
+
+    Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync(
+        Expression<Func<TEntity, bool>> filter,
+        IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
+        uint page = 1,
+        uint limit = 10,
+        bool useSplitQuery = false,
+        bool disableTracking = false,
+        CancellationToken cancellationToken = default);
+
+    TEntity Update(TEntity entityToUpdate);
+
+    void Delete(TEntity entityToDelete);
+
+    Task<long> GetCountAsync(
+        Expression<Func<TEntity, bool>>? filter = null,
+        CancellationToken cancellationToken = default);
+
+    // ----------- Unused methods (yet) -----------
+
+    /*
+    Task CreateManyAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default);
 
     Task<TEntity?> GetOneAsync<TSorter>(
         Expression<Func<TEntity, bool>> filter,
@@ -49,15 +69,6 @@ public interface IRepositoryBase<TEntity, in TKey>
         where TSorter : IComparable<TSorter>;
 
     Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync(
-        Expression<Func<TEntity, bool>> filter,
-        IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
-        uint page = 1,
-        uint limit = 10,
-        bool useSplitQuery = false,
-        bool disableTracking = false,
-        CancellationToken cancellationToken = default);
-
-    Task<PaginatedDomainResult<IEnumerable<TEntity>>> GetAllAsync(
         IEnumerable<Expression<Func<TEntity, object?>>>? includes = null,
         uint page = 1,
         uint limit = 10,
@@ -108,12 +119,5 @@ public interface IRepositoryBase<TEntity, in TKey>
         bool useSplitQuery = false,
         bool disableTracking = false,
         CancellationToken cancellationToken = default);
-
-    TEntity Update(TEntity entityToUpdate);
-
-    void Delete(TEntity entityToDelete);
-
-    Task<long> GetCountAsync(
-        Expression<Func<TEntity, bool>>? filter = null,
-        CancellationToken cancellationToken = default);
+    */
 }

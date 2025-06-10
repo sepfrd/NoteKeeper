@@ -115,8 +115,13 @@ public class AuthService : IAuthService
             .HttpContext?
             .User
             .Claims
-            .First(claim => claim.Type == JwtExtendedConstants.JwtUuidClaimType)
-            .Value!;
+            .FirstOrDefault(claim => claim.Type == JwtExtendedConstants.JwtUuidClaimType)?
+            .Value;
+
+        if (userUuid is null)
+        {
+            return null;
+        }
 
         var user = await _unitOfWork.UserRepository.GetOneAsync(
             user => user.Uuid == Guid.Parse(userUuid),

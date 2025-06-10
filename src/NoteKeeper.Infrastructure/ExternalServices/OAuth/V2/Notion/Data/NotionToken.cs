@@ -1,10 +1,19 @@
 using NoteKeeper.Domain.Interfaces;
 
-namespace NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
 
-public class NotionToken : IEntity<long>
+public class NotionToken : IEntity<long>, IAuditable
 {
+    public NotionToken()
+    {
+        CreatedAt = UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public long Id { get; set; }
+
+    public DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset UpdatedAt { get; set; }
 
     public required string AccessToken { get; set; }
 
@@ -31,4 +40,6 @@ public class NotionToken : IEntity<long>
     public long UserId { get; set; }
 
     public bool IsExpired => DateTimeOffset.UtcNow > ExpiresAt;
+
+    public void MarkAsUpdated() => UpdatedAt = DateTimeOffset.UtcNow;
 }

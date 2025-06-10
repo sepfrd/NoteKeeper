@@ -27,12 +27,13 @@ using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 using NoteKeeper.Infrastructure.ExternalServices;
-using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
-using NoteKeeper.Infrastructure.ExternalServices.Notion.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Infrastructure.Services;
-using NoteKeeper.Infrastructure.Services.OAuth.V2;
 using StackExchange.Redis;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
 
@@ -49,7 +50,7 @@ public static class ServiceCollectionExtensions
         services
             .AddSingleton(Options.Create(appOptions))
             .AddHttpContextAccessor()
-            .AddHttpClient()
+            .AddHttpClients(appOptions.HttpClientOptions)
             .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
             .AddMemoryCacheEntryOptions()
             .AddOpenApi(options =>
@@ -218,6 +219,15 @@ public static class ServiceCollectionExtensions
                         .AllowAnyMethod()
                         .AllowAnyHeader());
         });
+
+    public static IServiceCollection AddHttpClients(this IServiceCollection services, HttpClientOptions httpClientOptions) =>
+        services
+            .AddHttpClient<GoogleOAuth2Service>(client =>
+                client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
+            .Services
+            .AddHttpClient<NotionOAuth2Service>(client =>
+                client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
+            .Services;
 
     private static void ConfigureMapster()
     {

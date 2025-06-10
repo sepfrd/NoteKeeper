@@ -86,7 +86,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
                 StatusCodes.Status500InternalServerError);
         }
 
-        updatedNote.MarkAsUpdated();
+        _unitOfWork.NoteRepository.Update(updatedNote);
 
         var commitResult = await _unitOfWork.CommitChangesAsync(cancellationToken);
 

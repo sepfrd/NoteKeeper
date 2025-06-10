@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
 using NpgsqlTypes;
 
 namespace NoteKeeper.Infrastructure.Persistence.EntityConfigurations;

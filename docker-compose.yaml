@@ -87,6 +87,10 @@ services:
       NotionOAuthOptions__ClientSecret: "${NOTION_CLIENT_SECRET}"
       NotionOAuthOptions__AuthUri: "${NOTION_AUTH_URI}"
       NotionOAuthOptions__TokenUri: "${NOTION_TOKEN_URI}"
+
+      # HttpClient Configuration
+      HttpClientOptions__DefaultTimeoutInMilliseconds: 10000
+
     ports:
       - "${APPLICATION_HTTP_PORT}:8080"
     depends_on:

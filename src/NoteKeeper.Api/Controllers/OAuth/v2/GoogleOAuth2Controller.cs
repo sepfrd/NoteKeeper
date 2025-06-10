@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using NoteKeeper.Infrastructure.ExternalServices.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers.OAuth.v2;
