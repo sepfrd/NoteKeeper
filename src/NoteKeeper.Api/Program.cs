@@ -1,3 +1,4 @@
+using DotNetEnv;
 using NoteKeeper.Api.Constants;
 using NoteKeeper.Api.Extensions;
 using Scalar.AspNetCore;
@@ -6,6 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 try
 {
+    Env.TraversePath().Load();
+
+    builder.Configuration.AddEnvironmentVariables();
+
     builder.Services.AddApplicationDependencies(builder.Configuration);
 
     var app = builder.Build();
