@@ -2,14 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
 using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
-using NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
-using NoteKeeper.Application.Features.Notes.Commands.UnsubscribeFromNoteChanges;
 using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
 using NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
 using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
-using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.CQRS;
 using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
@@ -22,34 +19,25 @@ namespace NoteKeeper.Api.Controllers;
 [Route("api/notes")]
 public class NoteController : ControllerBase
 {
-    private readonly INoteService _noteService;
     private readonly IAuthService _authService;
     private readonly ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> _createNoteCommandHandler;
     private readonly ICommandHandler<DeleteNoteCommand, DomainResult> _deleteNoteCommandHandler;
-    private readonly ICommandHandler<SubscribeToNoteChangesCommand, DomainResult> _subscribeToNoteChangesCommandHandler;
-    private readonly ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult> _unsubscribeFromNoteChangesCommandHandler;
     private readonly ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> _updateNoteCommandHandler;
     private readonly IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> _getAllNotesByFilterQueryHandler;
     private readonly IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> _getAllNotesCountQueryHandler;
     private readonly IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> _getNoteByUuidQueryHandler;
 
     public NoteController(
-        INoteService noteService,
         IAuthService authService,
         ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> createNoteCommandHandler,
         ICommandHandler<DeleteNoteCommand, DomainResult> deleteNoteCommandHandler,
-        ICommandHandler<SubscribeToNoteChangesCommand, DomainResult> subscribeToNoteChangesCommandHandler,
-        ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult> unsubscribeFromNoteChangesCommandHandler,
         ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> updateNoteCommandHandler,
         IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> getAllNotesByFilterQueryHandler,
         IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> getAllNotesCountQueryHandler,
         IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> getNoteByUuidQueryHandler)
     {
-        _noteService = noteService;
         _createNoteCommandHandler = createNoteCommandHandler;
         _deleteNoteCommandHandler = deleteNoteCommandHandler;
-        _subscribeToNoteChangesCommandHandler = subscribeToNoteChangesCommandHandler;
-        _unsubscribeFromNoteChangesCommandHandler = unsubscribeFromNoteChangesCommandHandler;
         _updateNoteCommandHandler = updateNoteCommandHandler;
         _getAllNotesByFilterQueryHandler = getAllNotesByFilterQueryHandler;
         _getAllNotesCountQueryHandler = getAllNotesCountQueryHandler;
@@ -70,15 +58,6 @@ public class NoteController : ControllerBase
         var result = await _createNoteCommandHandler.HandleAsync(command, cancellationToken);
 
         return StatusCode(result.StatusCode, result);
-    }
-
-    [HttpPost]
-    [Route("uuid/{noteUuid:guid}/subscription")]
-    public async Task<IActionResult> SubscribeToNoteChangesAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
-    {
-        await _noteService.SubscribeToNoteChangesAsync(noteUuid);
-
-        return Ok();
     }
 
     [HttpGet]
@@ -135,14 +114,5 @@ public class NoteController : ControllerBase
         var result = await _deleteNoteCommandHandler.HandleAsync(command, cancellationToken);
 
         return StatusCode(result.StatusCode, result);
-    }
-
-    [HttpDelete]
-    [Route("uuid/{noteUuid:guid}/subscription")]
-    public async Task<IActionResult> UnsubscribeFromNoteChangesAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
-    {
-        await _noteService.UnsubscribeFromNoteChangesAsync(noteUuid);
-
-        return Ok();
     }
 }

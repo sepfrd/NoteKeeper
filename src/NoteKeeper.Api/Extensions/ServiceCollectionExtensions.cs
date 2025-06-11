@@ -10,8 +10,6 @@ using NoteKeeper.Api.Authentication;
 using NoteKeeper.Api.Transformers;
 using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
 using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
-using NoteKeeper.Application.Features.Notes.Commands.SubscribeToNoteChanges;
-using NoteKeeper.Application.Features.Notes.Commands.UnsubscribeFromNoteChanges;
 using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
@@ -92,7 +90,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddServices(this IServiceCollection services) =>
         services
-            .AddScoped<INoteService, NoteService>()
             .AddScoped<IAuthService, AuthService>()
             .AddScoped<ITokenService, TokenService>()
             .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
@@ -104,8 +101,6 @@ public static class ServiceCollectionExtensions
             .AddScoped<ICommandHandler<CreateUserCommand, DomainResult<UserDto>>, CreateUserCommandHandler>()
             .AddScoped<ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>>, CreateNoteCommandHandler>()
             .AddScoped<ICommandHandler<DeleteNoteCommand, DomainResult>, DeleteNoteCommandHandler>()
-            .AddScoped<ICommandHandler<SubscribeToNoteChangesCommand, DomainResult>, SubscribeToNoteChangesCommandHandler>()
-            .AddScoped<ICommandHandler<UnsubscribeFromNoteChangesCommand, DomainResult>, UnsubscribeFromNoteChangesCommandHandler>()
             .AddScoped<ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>>, UpdateNoteCommandHandler>();
 
     public static IServiceCollection AddQueryHandlers(this IServiceCollection services) =>
@@ -181,7 +176,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddExternalServices(this IServiceCollection services) =>
         services
-            .AddScoped<IRedisPubSubService<NoteDto>, RedisPubSubService<NoteDto>>()
             .AddScoped<IRedisService, RedisService>();
 
     public static IServiceCollection AddCors(this IServiceCollection services, CorsOptions corsOptions) =>
