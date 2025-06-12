@@ -34,7 +34,7 @@ services:
     image: note-keeper:latest
     build:
       context: .
-      dockerfile: ./NoteKeeper.Presentation/Dockerfile
+      dockerfile: ./src/NoteKeeper.Api/Dockerfile
     environment:
       # General Configuration
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
