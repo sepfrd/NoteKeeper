@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
+using NoteKeeper.Api.Constants;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Models;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers.OAuth.v2;
@@ -17,9 +18,9 @@ public class GoogleOAuth2Controller : ControllerBase
 
     [HttpPost]
     [Route("oidc")]
-    public async Task<IActionResult> AuthenticateWithGoogleAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> AuthenticateWithGoogleAsync(string redirectUri, CancellationToken cancellationToken)
     {
-        var result = await _googleOAuth2Service.AuthenticateWithGoogleAsync(cancellationToken);
+        var result = await _googleOAuth2Service.AuthenticateWithGoogleAsync(redirectUri, cancellationToken);
 
         return StatusCode(result.StatusCode, result);
     }
@@ -34,11 +35,30 @@ public class GoogleOAuth2Controller : ControllerBase
         [FromQuery] string prompt,
         CancellationToken cancellationToken)
     {
-        var exchangeRequestDto = new CompleteGoogleAuthenticationAsyncRequestDto(state, code, scope, authuser, prompt);
+        var exchangeRequestDto = new CompleteGoogleAuthenticationRequestDto(state, code, scope, authuser, prompt);
 
         var result = await _googleOAuth2Service.CompleteGoogleAuthenticationAsync(exchangeRequestDto, cancellationToken);
 
-        return StatusCode(result.StatusCode, result);
+        if (!result.IsSuccess)
+        {
+            return StatusCode(result.StatusCode, new
+            {
+                Data = result.Data?.AuthResponseDto.Jwt,
+                result.IsSuccess,
+                result.Message,
+                result.StatusCode
+            });
+        }
+
+        Response.Cookies.Append(KeyConstants.RefreshTokenCookieKey, result.Data!.AuthResponseDto.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Expires = result.Data.AuthResponseDto.RefreshTokenExpiresAt
+        });
+
+        return Redirect(result.Data.RedirectUri);
     }
 
     [HttpPatch]

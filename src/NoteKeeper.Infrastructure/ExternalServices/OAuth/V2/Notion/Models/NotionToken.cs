@@ -1,6 +1,6 @@
 using NoteKeeper.Domain.Interfaces;
 
-namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
+namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Models;
 
 public class NotionToken : IEntity<long>, IAuditable
 {

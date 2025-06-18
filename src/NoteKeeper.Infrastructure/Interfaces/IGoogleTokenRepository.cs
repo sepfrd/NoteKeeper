@@ -1,5 +1,5 @@
 using NoteKeeper.Application.Interfaces.Repositories;
-using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Models;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

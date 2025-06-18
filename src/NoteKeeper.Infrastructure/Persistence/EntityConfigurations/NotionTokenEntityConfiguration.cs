@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Models;
 using NpgsqlTypes;
 
 namespace NoteKeeper.Infrastructure.Persistence.EntityConfigurations;

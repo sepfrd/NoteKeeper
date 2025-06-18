@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
+using NoteKeeper.Api.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Interfaces;
 
@@ -9,7 +10,6 @@ namespace NoteKeeper.Api.Controllers;
 [Route("api/auth")]
 public class AuthController : ControllerBase
 {
-    private const string RefreshTokenCookieKey = "refresh_token";
     private readonly IAuthService _authService;
 
     public AuthController(IAuthService authService) =>
@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
 
         if (result.IsSuccess)
         {
-            Response.Cookies.Append(RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
+            Response.Cookies.Append(KeyConstants.RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
@@ -45,7 +45,7 @@ public class AuthController : ControllerBase
     [Route("refresh-token")]
     public async Task<IActionResult> RefreshTokenAsync(CancellationToken cancellationToken)
     {
-        if (!Request.Cookies.TryGetValue(RefreshTokenCookieKey, out var refreshToken))
+        if (!Request.Cookies.TryGetValue(KeyConstants.RefreshTokenCookieKey, out var refreshToken))
         {
             return Unauthorized();
         }
@@ -54,7 +54,7 @@ public class AuthController : ControllerBase
 
         if (result.IsSuccess)
         {
-            Response.Cookies.Append(RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
+            Response.Cookies.Append(KeyConstants.RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
@@ -64,7 +64,7 @@ public class AuthController : ControllerBase
         }
         else
         {
-            Response.Cookies.Delete(RefreshTokenCookieKey, new CookieOptions
+            Response.Cookies.Delete(KeyConstants.RefreshTokenCookieKey, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,

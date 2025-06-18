@@ -1,6 +1,6 @@
 using NoteKeeper.Domain.Interfaces;
 
-namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Data;
+namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Models;
 
 public class GoogleToken : IEntity<long>, IAuditable
 {

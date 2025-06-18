@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Data;
+using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Models;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Infrastructure.Persistence.Repositories;
