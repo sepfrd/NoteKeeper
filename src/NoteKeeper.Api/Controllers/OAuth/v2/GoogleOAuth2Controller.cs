@@ -18,7 +18,7 @@ public class GoogleOAuth2Controller : ControllerBase
 
     [HttpPost]
     [Route("oidc")]
-    public async Task<IActionResult> AuthenticateWithGoogleAsync(string redirectUri, CancellationToken cancellationToken)
+    public async Task<IActionResult> AuthenticateWithGoogleAsync([FromQuery] string redirectUri, CancellationToken cancellationToken)
     {
         var result = await _googleOAuth2Service.AuthenticateWithGoogleAsync(redirectUri, cancellationToken);
 
@@ -58,7 +58,9 @@ public class GoogleOAuth2Controller : ControllerBase
             Expires = result.Data.AuthResponseDto.RefreshTokenExpiresAt
         });
 
-        return Redirect(result.Data.RedirectUri);
+        var redirectUri = $"{result.Data.RedirectUri.TrimEnd('/')}?{KeyConstants.AccessTokenQueryParameterKey}={result.Data.AuthResponseDto.Jwt}";
+
+        return Redirect(redirectUri);
     }
 
     [HttpPatch]

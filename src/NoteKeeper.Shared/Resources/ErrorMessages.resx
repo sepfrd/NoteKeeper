@@ -80,4 +80,7 @@
     <data name="NotionOAuth" xml:space="preserve">
         <value>Notion OAuth 2.0 request failed.</value>
     </data>
+    <data name="InvalidRedirectUri" xml:space="preserve">
+        <value>Invalid Redirect URI</value>
+    </data>
 </root>

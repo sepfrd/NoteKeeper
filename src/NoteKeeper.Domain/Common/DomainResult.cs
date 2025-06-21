@@ -6,7 +6,7 @@ public record DomainResult
     {
         Message = message;
         StatusCode = statusCode;
-        IsSuccess = statusCode >= 200 && statusCode < 300;
+        IsSuccess = statusCode >= 200 && statusCode < 400;
     }
 
     public string? Message { get; init; }

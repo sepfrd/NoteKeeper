@@ -60,6 +60,13 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
         string redirectUri,
         CancellationToken cancellationToken = default)
     {
+        if (!_appOptions.CorsOptions.AllowedUrls.Any(redirectUri.StartsWith))
+        {
+            return DomainResult<string?>.CreateFailure(
+                ErrorMessages.InvalidRedirectUri,
+                StatusCodes.Status400BadRequest);
+        }
+
         var user = await _authService.GetSignedInUserAsync(cancellationToken: cancellationToken);
 
         if (user is not null)
@@ -190,7 +197,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
                 return DomainResult<CompleteGoogleAuthenticationResponseDto?>.CreateSuccess(
                     signupMessage,
-                    StatusCodes.Status308PermanentRedirect,
+                    StatusCodes.Status302Found,
                     signupResponseDto);
             }
 
@@ -261,7 +268,7 @@ public class GoogleOAuth2Service : IGoogleOAuth2Service
 
             return DomainResult<CompleteGoogleAuthenticationResponseDto?>.CreateSuccess(
                 signinMessage,
-                StatusCodes.Status308PermanentRedirect,
+                StatusCodes.Status302Found,
                 signinResponseDto);
         }
         catch (Exception exception)
