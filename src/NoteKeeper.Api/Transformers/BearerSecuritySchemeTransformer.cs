@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
+using NoteKeeper.Api.Authentication;
 
 namespace NoteKeeper.Api.Transformers;
 
@@ -11,7 +12,9 @@ public sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvide
     {
         var authenticationSchemes = await authenticationSchemeProvider.GetAllSchemesAsync();
 
-        if (authenticationSchemes.Any(authScheme => authScheme.Name == JwtBearerDefaults.AuthenticationScheme))
+        if (authenticationSchemes.Any(authScheme =>
+                authScheme.Name == JwtBearerDefaults.AuthenticationScheme ||
+                authScheme.Name == Ed25519JwtAuthenticationSchemeOptions.DefaultScheme))
         {
             var requirements = new Dictionary<string, OpenApiSecurityScheme>
             {
