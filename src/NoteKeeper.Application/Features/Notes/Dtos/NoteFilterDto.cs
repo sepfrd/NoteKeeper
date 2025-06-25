@@ -11,7 +11,7 @@ public class NoteFilterDto : FilterDtoBase
 
     public string? Content { get; set; }
 
-    public long? UserId { get; set; }
+    public Guid? UserUuid { get; set; }
 
     public Expression<Func<Note, bool>>? ToExpression()
     {
@@ -26,14 +26,17 @@ public class NoteFilterDto : FilterDtoBase
             expressions.Add(parentDtoExpression);
         }
 
-        if (UserId is not null)
+        if (UserUuid is not null)
         {
-            var authorIdMember = Expression.Property(note, nameof(Note.UserId));
-            var authorIdConstant = Expression.Constant(UserId);
+            var userMember = Expression.Property(note, nameof(Note.User));
 
-            var authorIdExpression = Expression.Equal(authorIdMember, authorIdConstant);
+            var userUuidMember = Expression.Property(userMember, nameof(User.Uuid));
 
-            expressions.Add(authorIdExpression);
+            var userUuidConstant = Expression.Constant(UserUuid);
+
+            var userUuidExpression = Expression.Equal(userUuidMember, userUuidConstant);
+
+            expressions.Add(userUuidExpression);
         }
 
         if (!string.IsNullOrWhiteSpace(Title))

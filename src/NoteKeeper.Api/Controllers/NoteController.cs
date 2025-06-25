@@ -61,9 +61,13 @@ public class NoteController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAllNotesAsync([FromQuery] uint? pageNumber, [FromQuery] uint? pageSize, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllNotesAsync(
+        [FromQuery] uint? pageNumber,
+        [FromQuery] uint? pageSize,
+        [FromQuery] NoteFilterDto? noteFilterDto,
+        CancellationToken cancellationToken)
     {
-        var query = new GetAllNotesByFilterQuery(null, pageNumber ?? 1, pageSize ?? 10);
+        var query = new GetAllNotesByFilterQuery(noteFilterDto, pageNumber ?? 1, pageSize ?? 10);
 
         var result = await _getAllNotesByFilterQueryHandler.HandleAsync(query, cancellationToken);
 
