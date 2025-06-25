@@ -67,6 +67,12 @@ public class NoteController : ControllerBase
         [FromQuery] NoteFilterDto? noteFilterDto,
         CancellationToken cancellationToken)
     {
+        var signedInUserUuid = _authService.GetSignedInUserUuid();
+
+        noteFilterDto ??= new NoteFilterDto();
+
+        noteFilterDto.UserUuid = Guid.Parse(signedInUserUuid);
+
         var query = new GetAllNotesByFilterQuery(noteFilterDto, pageNumber ?? 1, pageSize ?? 10);
 
         var result = await _getAllNotesByFilterQueryHandler.HandleAsync(query, cancellationToken);
