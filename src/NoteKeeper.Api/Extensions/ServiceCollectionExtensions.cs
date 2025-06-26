@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BCrypt.Net;
+using FluentValidation;
 using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -32,6 +33,7 @@ using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion.Models;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Infrastructure.Services;
+using NoteKeeper.Infrastructure.Validators;
 using StackExchange.Redis;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
 
@@ -64,6 +66,7 @@ public static class ServiceCollectionExtensions
             .AddJsonSerializerOptions()
             .AddRedisConnectionMultiplexer(appOptions.RedisOptions)
             .AddExternalServices()
+            .AddValidatorsFromAssemblyContaining<CreateUserCommandValidator>(ServiceLifetime.Singleton)
             .AddCors(appOptions.CorsOptions)
             .AddSingleton<IDbConnectionPool, DbConnectionPool>(serviceProvider =>
             {
@@ -225,6 +228,11 @@ public static class ServiceCollectionExtensions
 
     private static void ConfigureMapster()
     {
+        TypeAdapterConfig<UpdateNoteCommand, Note>
+            .ForType()
+            .Map(note => note.Title, command => command.NewTitle)
+            .Map(note => note.Content, command => command.NewContent);
+
         TypeAdapterConfig<GoogleIdTokenPayloadDto, User>
             .ForType()
             .Map(user => user.Username, src => src.Subject)

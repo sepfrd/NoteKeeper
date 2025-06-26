@@ -6,8 +6,8 @@ using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
-using NoteKeeper.Infrastructure.Common.Dtos;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
+using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Common.Dtos.Responses;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Shared.Resources;
@@ -37,23 +37,23 @@ public class AuthService : IAuthService
         _appOptions = appOptions.Value;
     }
 
-    public async Task<DomainResult<AuthResponseDto?>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
+    public async Task<DomainResult<AuthResponseDto?>> LoginAsync(LoginRequestDto loginRequestDto, CancellationToken cancellationToken = default)
     {
         if (IsSignedIn())
         {
             return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.AlreadySignedIn, StatusCodes.Status400BadRequest);
         }
 
-        var user = await GetByUsernameOrEmailAsync(loginDto.UsernameOrEmail, cancellationToken);
+        var user = await GetByUsernameOrEmailAsync(loginRequestDto.UsernameOrEmail, cancellationToken);
 
         if (user is null ||
             user.RegistrationType != RegistrationType.Direct ||
-            !RegexValidator.PasswordRegex().IsMatch(loginDto.Password))
+            !RegexValidator.PasswordRegex().IsMatch(loginRequestDto.Password))
         {
             return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.InvalidCredentials, StatusCodes.Status400BadRequest);
         }
 
-        var isPasswordValid = CryptographyHelper.ValidatePassword(loginDto.Password, user.PasswordHash!);
+        var isPasswordValid = CryptographyHelper.ValidatePassword(loginRequestDto.Password, user.PasswordHash!);
 
         if (!isPasswordValid)
         {

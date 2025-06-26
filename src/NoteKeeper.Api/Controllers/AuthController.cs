@@ -1,7 +1,9 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using NoteKeeper.Api.Constants;
-using NoteKeeper.Infrastructure.Common.Dtos;
+using NoteKeeper.Domain.Common;
+using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers;
@@ -11,15 +13,26 @@ namespace NoteKeeper.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IValidator<LoginRequestDto> _validator;
 
-    public AuthController(IAuthService authService) =>
+    public AuthController(IAuthService authService, IValidator<LoginRequestDto> validator)
+    {
         _authService = authService;
+        _validator = validator;
+    }
 
     [HttpPost]
     [Route("login")]
-    public async Task<IActionResult> LoginAsync([FromBody] LoginDto loginDto, CancellationToken cancellationToken)
+    public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDto loginRequestDto, CancellationToken cancellationToken)
     {
-        var result = await _authService.LoginAsync(loginDto, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(loginRequestDto, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+        }
+
+        var result = await _authService.LoginAsync(loginRequestDto, cancellationToken);
 
         if (result.IsSuccess)
         {

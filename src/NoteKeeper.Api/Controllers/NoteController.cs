@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
@@ -20,6 +21,8 @@ namespace NoteKeeper.Api.Controllers;
 public class NoteController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IValidator<CreateNoteRequestDto> _createNoteRequestDtoValidator;
+    private readonly IValidator<UpdateNoteRequestDto> _updateNoteRequestDtoValidator;
     private readonly ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> _createNoteCommandHandler;
     private readonly ICommandHandler<DeleteNoteCommand, DomainResult> _deleteNoteCommandHandler;
     private readonly ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> _updateNoteCommandHandler;
@@ -29,6 +32,8 @@ public class NoteController : ControllerBase
 
     public NoteController(
         IAuthService authService,
+        IValidator<CreateNoteRequestDto> createNoteRequestDtoValidator,
+        IValidator<UpdateNoteRequestDto> updateNoteRequestDtoValidator,
         ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>> createNoteCommandHandler,
         ICommandHandler<DeleteNoteCommand, DomainResult> deleteNoteCommandHandler,
         ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> updateNoteCommandHandler,
@@ -42,12 +47,21 @@ public class NoteController : ControllerBase
         _getAllNotesByFilterQueryHandler = getAllNotesByFilterQueryHandler;
         _getAllNotesCountQueryHandler = getAllNotesCountQueryHandler;
         _getNoteByUuidQueryHandler = getNoteByUuidQueryHandler;
+        _createNoteRequestDtoValidator = createNoteRequestDtoValidator;
+        _updateNoteRequestDtoValidator = updateNoteRequestDtoValidator;
         _authService = authService;
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateNoteAsync([FromBody] CreateNoteRequestDto createNoteRequestDto, CancellationToken cancellationToken)
     {
+        var validationResult = await _createNoteRequestDtoValidator.ValidateAsync(createNoteRequestDto, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+        }
+
         var signedInUserUuid = _authService.GetSignedInUserUuid();
 
         var command = new CreateNoteCommand(
@@ -98,6 +112,13 @@ public class NoteController : ControllerBase
         UpdateNoteRequestDto updateNoteRequestDto,
         CancellationToken cancellationToken)
     {
+        var validationResult = await _updateNoteRequestDtoValidator.ValidateAsync(updateNoteRequestDto, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+        }
+
         var signedInUserUuid = _authService.GetSignedInUserUuid();
 
         var command = new UpdateNoteCommand(
