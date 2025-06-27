@@ -1,10 +1,12 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using NoteKeeper.Api.Constants;
 using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Shared.Resources;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -52,6 +54,21 @@ public class AuthController : ControllerBase
             result.Message,
             result.StatusCode
         });
+    }
+
+    [HttpPost]
+    [Authorize]
+    [Route("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete(KeyConstants.RefreshTokenCookieKey, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None
+        });
+
+        return Ok(DomainResult.CreateBaseSuccess(SuccessMessages.Logout, StatusCodes.Status200OK));
     }
 
     [HttpPost]

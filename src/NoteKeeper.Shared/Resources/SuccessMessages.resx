@@ -53,4 +53,7 @@
     <data name="CreateTemplate" xml:space="preserve">
         <value>Successfully created {0} entity.</value>
     </data>
+    <data name="Logout" xml:space="preserve">
+        <value>Successfully logged out.</value>
+    </data>
 </root>
