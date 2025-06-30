@@ -81,7 +81,7 @@ public class TokenService : ITokenService
         var expirationExists = payloadDictionary.TryGetValue(JwtRegisteredClaimNames.Exp, out var expiration);
 
         if (!expirationExists ||
-            expiration is not long convertedExpiration ||
+            !long.TryParse(expiration?.ToString(), out var convertedExpiration) ||
             convertedExpiration < now)
         {
             return false;
@@ -90,7 +90,7 @@ public class TokenService : ITokenService
         var notBeforeExists = payloadDictionary.TryGetValue(JwtRegisteredClaimNames.Nbf, out var notBefore);
 
         if (!notBeforeExists ||
-            notBefore is not long convertedNotBefore ||
+            !long.TryParse(notBefore?.ToString(), out var convertedNotBefore) ||
             convertedNotBefore > now)
         {
             return false;
