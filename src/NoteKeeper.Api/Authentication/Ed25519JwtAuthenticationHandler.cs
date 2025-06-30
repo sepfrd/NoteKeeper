@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,9 +38,9 @@ public class Ed25519JwtAuthenticationHandler : AuthenticationHandler<Ed25519JwtA
             ? authorizationHeader.Replace(JwtBearerDefaults.AuthenticationScheme, string.Empty).Trim()
             : authorizationHeader.Trim();
 
-        var isTokenValid = _tokenService.IsEd25519JwtValid(token);
+        var isTokenValid = _tokenService.ValidateEd25519Jwt(token, out var claims);
 
-        if (!isTokenValid)
+        if (!isTokenValid || claims is null)
         {
             return Task.FromResult(
                 AuthenticateResult
@@ -47,7 +48,11 @@ public class Ed25519JwtAuthenticationHandler : AuthenticationHandler<Ed25519JwtA
                         .ToString(CultureInfo.InvariantCulture)));
         }
 
-        var claimsPrincipal = _tokenService.ConvertJwtStringToClaimsPrincipal(token, Scheme.Name);
+        var claimsIdentity = new ClaimsIdentity(
+            claims.Select(claim => new Claim(claim.Key, claim.Value.ToString() ?? string.Empty)),
+            Scheme.Name);
+
+        var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
 
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(claimsPrincipal, Scheme.Name)));
     }

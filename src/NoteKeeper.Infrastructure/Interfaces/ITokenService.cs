@@ -1,13 +1,10 @@
-using System.Security.Claims;
 using NoteKeeper.Domain.Entities;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 
 public interface ITokenService
 {
-    bool IsEd25519JwtValid(string token);
-
-    ClaimsPrincipal ConvertJwtStringToClaimsPrincipal(string jwtString, string authenticationType);
+    bool ValidateEd25519Jwt(string token, out Dictionary<string, object>? claims);
 
     string GenerateEd25519Jwt(User user);
 

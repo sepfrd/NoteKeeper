@@ -31,8 +31,10 @@ public class TokenService : ITokenService
         _appOptions = appOptions.Value;
     }
 
-    public bool IsEd25519JwtValid(string token)
+    public bool ValidateEd25519Jwt(string token, out Dictionary<string, object>? claims)
     {
+        claims = null;
+
         var tokenSections = token.Split('.');
 
         if (tokenSections.Length != 3)
@@ -55,24 +57,48 @@ public class TokenService : ITokenService
         var verifier = new Ed25519Signer();
 
         verifier.Init(false, publicKey);
+
         verifier.BlockUpdate(messageBytes, 0, messageBytes.Length);
 
-        var isValid = verifier.VerifySignature(signatureBytes);
+        var isSignatureValid = verifier.VerifySignature(signatureBytes);
 
-        return isValid;
-    }
+        if (!isSignatureValid)
+        {
+            return false;
+        }
 
-    public ClaimsPrincipal ConvertJwtStringToClaimsPrincipal(string jwtString, string authenticationType)
-    {
-        var handler = new JwtSecurityTokenHandler();
+        var payloadJson = Encoding.UTF8.GetString(Base64UrlEncoder.DecodeBytes(payload));
 
-        var jwt = handler.ReadJwtToken(jwtString);
+        var payloadDictionary = JsonSerializer.Deserialize<Dictionary<string, object>>(payloadJson);
 
-        var claims = jwt.Claims;
+        if (payloadDictionary is null)
+        {
+            return false;
+        }
 
-        var identity = new ClaimsIdentity(claims, authenticationType);
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        return new ClaimsPrincipal(identity);
+        var expirationExists = payloadDictionary.TryGetValue(JwtRegisteredClaimNames.Exp, out var expiration);
+
+        if (!expirationExists ||
+            expiration is not long convertedExpiration ||
+            convertedExpiration < now)
+        {
+            return false;
+        }
+
+        var notBeforeExists = payloadDictionary.TryGetValue(JwtRegisteredClaimNames.Nbf, out var notBefore);
+
+        if (!notBeforeExists ||
+            notBefore is not long convertedNotBefore ||
+            convertedNotBefore > now)
+        {
+            return false;
+        }
+
+        claims = payloadDictionary;
+
+        return true;
     }
 
     public string GenerateEd25519Jwt(User user)
