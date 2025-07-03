@@ -68,6 +68,11 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
 
         var userDto = _mappingService.Map<User, UserDto>(createdUser);
 
-        return DomainResult<UserDto>.CreateSuccess(null, StatusCodes.Status201Created, userDto!);
+        var successMessage = string.Format(
+            CultureInfo.InvariantCulture,
+            SuccessMessages.Signup,
+            command.Username);
+
+        return DomainResult<UserDto>.CreateSuccess(successMessage, StatusCodes.Status201Created, userDto!);
     }
 }

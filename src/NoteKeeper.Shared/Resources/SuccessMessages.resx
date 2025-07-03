@@ -56,4 +56,7 @@
     <data name="Logout" xml:space="preserve">
         <value>Successfully logged out.</value>
     </data>
+    <data name="Signup" xml:space="preserve">
+        <value>Signup was successful. Welcome {0}.</value>
+    </data>
 </root>

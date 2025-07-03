@@ -34,6 +34,7 @@ using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Infrastructure.Services;
 using NoteKeeper.Infrastructure.Validators;
+using NoteKeeper.Shared.Utilities;
 using StackExchange.Redis;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
 
@@ -228,6 +229,12 @@ public static class ServiceCollectionExtensions
 
     private static void ConfigureMapster()
     {
+        TypeAdapterConfig<CreateUserCommand, User>
+            .ForType()
+            .Map(
+                user => user.PasswordHash,
+                command => CryptographyHelper.HashPassword(command.Password));
+
         TypeAdapterConfig<UpdateNoteCommand, Note>
             .ForType()
             .Map(note => note.Title, command => command.NewTitle)
