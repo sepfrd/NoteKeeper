@@ -16,10 +16,13 @@ public class DocumentInfoTransformer : IOpenApiDocumentTransformer
 
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
-        document.Servers.Add(new OpenApiServer
-        {
-            Url = _appOptions.BaseApiUrl
-        });
+        document.Servers =
+        [
+            new OpenApiServer
+            {
+                Url = _appOptions.BaseApiUrl
+            }
+        ];
 
         return Task.CompletedTask;
     }
