@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Humanizer;
+using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Application.Common;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Domain.Entities;
@@ -45,11 +46,15 @@ public class NoteFilterDto : FilterDtoBase, IFilterBase<Note>
             var titleMember = Expression.Property(note, nameof(Note.Title));
             var titleConstant = Expression.Constant(Title);
 
-            var containsMethod = typeof(string)
-                .GetMethods()
-                .First(methodInfo => methodInfo.Name == nameof(string.Contains) && methodInfo.GetParameters().Length == 1);
+            var iLikeMethod = typeof(NpgsqlDbFunctionsExtensions)
+                .GetMethod(nameof(NpgsqlDbFunctionsExtensions.ILike), new[]
+                {
+                    typeof(DbFunctions),
+                    typeof(string),
+                    typeof(string)
+                })!;
 
-            var titleExpression = Expression.Call(titleMember, containsMethod, titleConstant);
+            var titleExpression = Expression.Call(titleMember, iLikeMethod, titleConstant);
 
             expressions.Add(titleExpression);
         }

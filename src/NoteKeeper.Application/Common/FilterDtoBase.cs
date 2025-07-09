@@ -32,7 +32,7 @@ public abstract class FilterDtoBase
         if (CreatedAtStartDate is not null)
         {
             var createdAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.CreatedAt));
-            var createdAtStartDateConstant = Expression.Constant(CreatedAtStartDate.Value);
+            var createdAtStartDateConstant = Expression.Constant(new DateTimeOffset(CreatedAtStartDate.Value));
 
             expressions.Add(Expression.GreaterThanOrEqual(createdAtMember, createdAtStartDateConstant));
         }
@@ -40,7 +40,7 @@ public abstract class FilterDtoBase
         if (CreatedAtEndDate is not null)
         {
             var createdAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.CreatedAt));
-            var createdAtEndDateConstant = Expression.Constant(CreatedAtEndDate.Value);
+            var createdAtEndDateConstant = Expression.Constant(new DateTimeOffset(CreatedAtEndDate.Value));
 
             expressions.Add(Expression.LessThanOrEqual(createdAtMember, createdAtEndDateConstant));
         }
@@ -48,7 +48,7 @@ public abstract class FilterDtoBase
         if (UpdatedAtStartDate is not null)
         {
             var updatedAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.UpdatedAt));
-            var updatedAtStartDateConstant = Expression.Constant(UpdatedAtStartDate.Value);
+            var updatedAtStartDateConstant = Expression.Constant(new DateTimeOffset(UpdatedAtStartDate.Value));
 
             expressions.Add(Expression.GreaterThanOrEqual(updatedAtMember, updatedAtStartDateConstant));
         }
@@ -56,7 +56,7 @@ public abstract class FilterDtoBase
         if (UpdatedAtEndDate is not null)
         {
             var updatedAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.UpdatedAt));
-            var updatedAtEndDateConstant = Expression.Constant(UpdatedAtEndDate.Value);
+            var updatedAtEndDateConstant = Expression.Constant(new DateTimeOffset(UpdatedAtEndDate.Value));
 
             expressions.Add(Expression.LessThanOrEqual(updatedAtMember, updatedAtEndDateConstant));
         }
