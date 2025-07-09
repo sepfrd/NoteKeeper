@@ -6,10 +6,10 @@ namespace NoteKeeper.Application.Common;
 public abstract class FilterDtoBase
 {
     protected FilterDtoBase(
-        DateTime? createdAtStartDate = null,
-        DateTime? createdAtEndDate = null,
-        DateTime? updatedAtStartDate = null,
-        DateTime? updatedAtEndDate = null)
+        DateTimeOffset? createdAtStartDate = null,
+        DateTimeOffset? createdAtEndDate = null,
+        DateTimeOffset? updatedAtStartDate = null,
+        DateTimeOffset? updatedAtEndDate = null)
     {
         CreatedAtStartDate = createdAtStartDate;
         CreatedAtEndDate = createdAtEndDate;
@@ -17,13 +17,13 @@ public abstract class FilterDtoBase
         UpdatedAtEndDate = updatedAtEndDate;
     }
 
-    public DateTime? CreatedAtStartDate { get; init; }
+    public DateTimeOffset? CreatedAtStartDate { get; init; }
 
-    public DateTime? CreatedAtEndDate { get; init; }
+    public DateTimeOffset? CreatedAtEndDate { get; init; }
 
-    public DateTime? UpdatedAtStartDate { get; init; }
+    public DateTimeOffset? UpdatedAtStartDate { get; init; }
 
-    public DateTime? UpdatedAtEndDate { get; init; }
+    public DateTimeOffset? UpdatedAtEndDate { get; init; }
 
     protected Expression? ToBaseExpression(ParameterExpression parameterExpression)
     {
@@ -32,7 +32,7 @@ public abstract class FilterDtoBase
         if (CreatedAtStartDate is not null)
         {
             var createdAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.CreatedAt));
-            var createdAtStartDateConstant = Expression.Constant(new DateTimeOffset(CreatedAtStartDate.Value));
+            var createdAtStartDateConstant = Expression.Constant(CreatedAtStartDate.Value);
 
             expressions.Add(Expression.GreaterThanOrEqual(createdAtMember, createdAtStartDateConstant));
         }
@@ -40,7 +40,7 @@ public abstract class FilterDtoBase
         if (CreatedAtEndDate is not null)
         {
             var createdAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.CreatedAt));
-            var createdAtEndDateConstant = Expression.Constant(new DateTimeOffset(CreatedAtEndDate.Value));
+            var createdAtEndDateConstant = Expression.Constant(CreatedAtEndDate.Value);
 
             expressions.Add(Expression.LessThanOrEqual(createdAtMember, createdAtEndDateConstant));
         }
@@ -48,7 +48,7 @@ public abstract class FilterDtoBase
         if (UpdatedAtStartDate is not null)
         {
             var updatedAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.UpdatedAt));
-            var updatedAtStartDateConstant = Expression.Constant(new DateTimeOffset(UpdatedAtStartDate.Value));
+            var updatedAtStartDateConstant = Expression.Constant(UpdatedAtStartDate.Value);
 
             expressions.Add(Expression.GreaterThanOrEqual(updatedAtMember, updatedAtStartDateConstant));
         }
@@ -56,7 +56,7 @@ public abstract class FilterDtoBase
         if (UpdatedAtEndDate is not null)
         {
             var updatedAtMember = Expression.Property(parameterExpression, nameof(DomainEntity.UpdatedAt));
-            var updatedAtEndDateConstant = Expression.Constant(new DateTimeOffset(UpdatedAtEndDate.Value));
+            var updatedAtEndDateConstant = Expression.Constant(UpdatedAtEndDate.Value);
 
             expressions.Add(Expression.LessThanOrEqual(updatedAtMember, updatedAtEndDateConstant));
         }

@@ -4,6 +4,10 @@ public record NoteDto
 {
     public Guid Uuid { get; init; }
 
+    public DateTimeOffset? CreatedAt { get; init; }
+
+    public DateTimeOffset? UpdatedAt { get; init; }
+
     public string? Title { get; init; }
 
     public string? Content { get; init; }

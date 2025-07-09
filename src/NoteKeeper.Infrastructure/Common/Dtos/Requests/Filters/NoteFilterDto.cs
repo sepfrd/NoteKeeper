@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using Humanizer;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Application.Common;
@@ -9,6 +10,18 @@ namespace NoteKeeper.Infrastructure.Common.Dtos.Requests.Filters;
 
 public class NoteFilterDto : FilterDtoBase, IFilterBase<Note>
 {
+    private static readonly MethodInfo _iLikeMethod = typeof(NpgsqlDbFunctionsExtensions)
+        .GetMethod(nameof(NpgsqlDbFunctionsExtensions.ILike), new[]
+        {
+            typeof(DbFunctions),
+            typeof(string),
+            typeof(string)
+        })!;
+
+    private static readonly MemberExpression _dbFunctions = Expression.Property(
+        null,
+        typeof(EF).GetProperty(nameof(EF.Functions))!);
+
     public string? Title { get; set; }
 
     public string? Content { get; set; }
@@ -44,17 +57,13 @@ public class NoteFilterDto : FilterDtoBase, IFilterBase<Note>
         if (!string.IsNullOrWhiteSpace(Title))
         {
             var titleMember = Expression.Property(note, nameof(Note.Title));
-            var titleConstant = Expression.Constant(Title);
+            var titleConstant = Expression.Constant($"%{Title}%");
 
-            var iLikeMethod = typeof(NpgsqlDbFunctionsExtensions)
-                .GetMethod(nameof(NpgsqlDbFunctionsExtensions.ILike), new[]
-                {
-                    typeof(DbFunctions),
-                    typeof(string),
-                    typeof(string)
-                })!;
-
-            var titleExpression = Expression.Call(titleMember, iLikeMethod, titleConstant);
+            var titleExpression = Expression.Call(
+                _iLikeMethod,
+                _dbFunctions,
+                titleMember,
+                titleConstant);
 
             expressions.Add(titleExpression);
         }
@@ -62,13 +71,13 @@ public class NoteFilterDto : FilterDtoBase, IFilterBase<Note>
         if (!string.IsNullOrWhiteSpace(Content))
         {
             var contentMember = Expression.Property(note, nameof(Note.Content));
-            var contentConstant = Expression.Constant(Content);
+            var contentConstant = Expression.Constant($"%{Content}%");
 
-            var containsMethod = typeof(string)
-                .GetMethods()
-                .First(methodInfo => methodInfo.Name == nameof(string.Contains) && methodInfo.GetParameters().Length == 1);
-
-            var contentExpression = Expression.Call(contentMember, containsMethod, contentConstant);
+            var contentExpression = Expression.Call(
+                _iLikeMethod,
+                _dbFunctions,
+                contentMember,
+                contentConstant);
 
             expressions.Add(contentExpression);
         }
