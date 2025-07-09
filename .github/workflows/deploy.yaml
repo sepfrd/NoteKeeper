@@ -26,6 +26,6 @@ jobs:
             git switch main
             git pull
             cd /root/Projects/notekeeper
-            docker compose --file docker-compose.yml --env-file .env build backend --no-cache
+            docker compose --file docker-compose.yaml --env-file .env build backend --no-cache
             docker compose --file docker-compose.yaml --env-file .env up --detach --build
           EOF
