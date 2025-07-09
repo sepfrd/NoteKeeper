@@ -22,10 +22,10 @@ jobs:
       - name: Deploy via SSH
         run: |
           ssh -o StrictHostKeyChecking=no -p ${{ secrets.VPS_HOST_PORT }} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd /root/Projects/NoteKeeper
+            cd /root/Projects/notekeeper/backend
             git switch main
             git pull
-            docker compose down
-            docker image rm note-keeper:latest
+            cd /root/Projects/notekeeper
+            docker compose --file docker-compose.yml --env-file .env build backend --no-cache
             docker compose --file docker-compose.yaml --env-file .env up --detach --build
           EOF
