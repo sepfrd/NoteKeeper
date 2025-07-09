@@ -173,10 +173,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
             return false;
         }
 
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            userEntity => userEntity.Id == userId,
-            disableTracking: true,
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(userId.Value, cancellationToken);
 
         if (user is null)
         {

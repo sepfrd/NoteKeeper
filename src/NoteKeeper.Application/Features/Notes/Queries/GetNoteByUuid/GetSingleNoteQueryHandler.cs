@@ -10,29 +10,25 @@ using NoteKeeper.Shared.Resources;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
 
-public class GetNoteByUuidQueryHandler : IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>>
+public class GetSingleNoteQueryHandler : IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMappingService _mappingService;
-    private readonly ILogger<GetNoteByUuidQueryHandler> _logger;
+    private readonly ILogger<GetSingleNoteQueryHandler> _logger;
 
-    public GetNoteByUuidQueryHandler(
+    public GetSingleNoteQueryHandler(
         IUnitOfWork unitOfWork,
         IMappingService mappingService,
-        ILogger<GetNoteByUuidQueryHandler> logger)
+        ILogger<GetSingleNoteQueryHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _mappingService = mappingService;
         _logger = logger;
     }
 
-    public async Task<DomainResult<NoteDto>> HandleAsync(GetNoteByUuidQuery query, CancellationToken cancellationToken = default)
+    public async Task<DomainResult<NoteDto>> HandleAsync(GetSingleNoteQuery query, CancellationToken cancellationToken = default)
     {
-        var note = await _unitOfWork.NoteRepository.GetOneAsync(
-            filter: note => note.Uuid == query.NoteUuid,
-            includes: [note => note.User],
-            disableTracking: true,
-            cancellationToken: cancellationToken);
+        var note = await _unitOfWork.NoteRepository.GetByIdentityAsync(query.NoteUuid, cancellationToken);
 
         if (note is null)
         {
@@ -41,7 +37,7 @@ public class GetNoteByUuidQueryHandler : IQueryHandler<GetNoteByUuidQuery, Domai
                 nameof(Note).Humanize(LetterCasing.LowerCase),
                 query.NoteUuid);
 
-            return DomainResult<NoteDto>.CreateFailure(ErrorMessages.EntityNotFoundByUuidTemplate, StatusCodes.Status404NotFound);
+            return DomainResult<NoteDto>.CreateFailure(notFoundMessage, StatusCodes.Status404NotFound);
         }
 
         var noteResponseDto = _mappingService.Map<Note, NoteDto>(note);

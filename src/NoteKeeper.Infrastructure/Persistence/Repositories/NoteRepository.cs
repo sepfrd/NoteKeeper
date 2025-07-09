@@ -5,7 +5,7 @@ using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Infrastructure.Persistence.Repositories;
 
-public class NoteRepository : RepositoryBase<Note, long>, INoteRepository
+public class NoteRepository : DomainEntityRepositoryBase<Note>, INoteRepository
 {
     public NoteRepository(DbSet<Note> dbSet, IDbConnectionPool dbConnectionPool)
         : base(dbSet, dbConnectionPool)

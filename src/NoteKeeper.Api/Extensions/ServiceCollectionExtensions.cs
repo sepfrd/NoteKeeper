@@ -111,7 +111,7 @@ public static class ServiceCollectionExtensions
         services
             .AddScoped<IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>, GetAllNotesByFilterQueryHandler>()
             .AddScoped<IQueryHandler<GetAllNotesCountQuery, DomainResult<long>>, GetAllNotesCountQueryHandler>()
-            .AddScoped<IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>>, GetNoteByUuidQueryHandler>();
+            .AddScoped<IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>>, GetSingleNoteQueryHandler>();
 
     public static IServiceCollection AddDatabase(this IServiceCollection services, AppOptions appOptions) =>
         services

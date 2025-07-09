@@ -27,10 +27,8 @@ public class GetAllNotesByFilterQueryHandler : IQueryHandler<GetAllNotesByFilter
 
     public async Task<PaginatedDomainResult<IEnumerable<NoteDto>>> HandleAsync(GetAllNotesByFilterQuery request, CancellationToken cancellationToken)
     {
-        var filterExpression = request.FilterDto?.ToExpression() ?? (_ => true);
-
         var notesResponse = await _unitOfWork.NoteRepository.GetAllAsync(
-            filter: filterExpression,
+            filter: request.Filter,
             includes: [note => note.User],
             page: request.PageNumber,
             limit: request.PageSize,

@@ -1,11 +1,12 @@
 using System.Linq.Expressions;
 using Humanizer;
 using NoteKeeper.Application.Common;
+using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Domain.Entities;
 
-namespace NoteKeeper.Application.Features.Notes.Dtos;
+namespace NoteKeeper.Infrastructure.Common.Dtos.Requests.Filters;
 
-public class NoteFilterDto : FilterDtoBase
+public class NoteFilterDto : FilterDtoBase, IFilterBase<Note>
 {
     public string? Title { get; set; }
 
@@ -13,7 +14,7 @@ public class NoteFilterDto : FilterDtoBase
 
     public Guid? UserUuid { get; set; }
 
-    public Expression<Func<Note, bool>>? ToExpression()
+    public Expression<Func<Note, bool>> ToFilterExpression()
     {
         var note = Expression.Parameter(typeof(Note), nameof(Note).Camelize());
 
@@ -80,7 +81,7 @@ public class NoteFilterDto : FilterDtoBase
 
         if (baseExpression is null)
         {
-            return null;
+            return _ => true;
         }
 
         var lambda = Expression.Lambda<Func<Note, bool>>(baseExpression, note);

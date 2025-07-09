@@ -84,10 +84,7 @@ public class AuthService : IAuthService
 
         var userId = (long)redisValue;
 
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Id == userId,
-            disableTracking: true,
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(userId, cancellationToken);
 
         var jwt = _tokenService.GenerateEd25519Jwt(user!);
 
@@ -123,11 +120,7 @@ public class AuthService : IAuthService
             return null;
         }
 
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Uuid == Guid.Parse(userUuid),
-            includes,
-            disableTracking: true,
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(Guid.Parse(userUuid), cancellationToken);
 
         return user;
     }

@@ -23,19 +23,14 @@ public class DeleteNoteCommandHandler : ICommandHandler<DeleteNoteCommand, Domai
 
     public async Task<DomainResult> HandleAsync(DeleteNoteCommand command, CancellationToken cancellationToken = default)
     {
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Uuid == command.UserUuid,
-            includes: [user => user.Notes],
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(command.UserUuid, cancellationToken);
 
         if (user is null)
         {
             return DomainResult.CreateBaseFailure(ErrorMessages.Unauthorized, StatusCodes.Status401Unauthorized);
         }
 
-        var note = await _unitOfWork.NoteRepository.GetOneAsync(
-            blogPost => blogPost.Uuid == command.NoteUuid,
-            cancellationToken: cancellationToken);
+        var note = await _unitOfWork.NoteRepository.GetByIdentityAsync(command.NoteUuid, cancellationToken);
 
         if (note is null)
         {

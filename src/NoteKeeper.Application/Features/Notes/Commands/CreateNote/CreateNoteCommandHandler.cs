@@ -29,11 +29,7 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
 
     public async Task<DomainResult<NoteDto>> HandleAsync(CreateNoteCommand command, CancellationToken cancellationToken)
     {
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Uuid == command.UserUuid,
-            includes: [user => user.Notes],
-            disableTracking: true,
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(command.UserUuid, cancellationToken);
 
         if (user is null)
         {

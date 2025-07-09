@@ -2,4 +2,4 @@ using NoteKeeper.Domain.Entities;
 
 namespace NoteKeeper.Application.Interfaces.Repositories;
 
-public interface INoteRepository : IRepositoryBase<Note, long>;
+public interface INoteRepository : IDomainEntityRepositoryBase<Note>;

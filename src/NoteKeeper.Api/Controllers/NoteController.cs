@@ -11,6 +11,7 @@ using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
 using NoteKeeper.Application.Interfaces.CQRS;
 using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
+using NoteKeeper.Infrastructure.Common.Dtos.Requests.Filters;
 using NoteKeeper.Infrastructure.Interfaces;
 
 namespace NoteKeeper.Api.Controllers;
@@ -28,7 +29,7 @@ public class NoteController : ControllerBase
     private readonly ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> _updateNoteCommandHandler;
     private readonly IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> _getAllNotesByFilterQueryHandler;
     private readonly IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> _getAllNotesCountQueryHandler;
-    private readonly IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> _getNoteByUuidQueryHandler;
+    private readonly IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>> _getNoteByUuidQueryHandler;
 
     public NoteController(
         IAuthService authService,
@@ -39,7 +40,7 @@ public class NoteController : ControllerBase
         ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> updateNoteCommandHandler,
         IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> getAllNotesByFilterQueryHandler,
         IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> getAllNotesCountQueryHandler,
-        IQueryHandler<GetNoteByUuidQuery, DomainResult<NoteDto>> getNoteByUuidQueryHandler)
+        IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>> getNoteByUuidQueryHandler)
     {
         _createNoteCommandHandler = createNoteCommandHandler;
         _deleteNoteCommandHandler = deleteNoteCommandHandler;
@@ -98,7 +99,7 @@ public class NoteController : ControllerBase
     [Route("uuid/{noteUuid:guid}")]
     public async Task<IActionResult> GetNoteByUuidAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
     {
-        var query = new GetNoteByUuidQuery(noteUuid);
+        var query = new GetSingleNoteQuery(noteUuid);
 
         var result = await _getNoteByUuidQueryHandler.HandleAsync(query, cancellationToken);
 

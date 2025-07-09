@@ -29,10 +29,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
 
     public async Task<DomainResult<NoteDto>> HandleAsync(UpdateNoteCommand request, CancellationToken cancellationToken = default)
     {
-        var user = await _unitOfWork.UserRepository.GetOneAsync(
-            user => user.Uuid == request.UserUuid,
-            includes: [user => user.Notes],
-            cancellationToken: cancellationToken);
+        var user = await _unitOfWork.UserRepository.GetByIdentityAsync(request.UserUuid, cancellationToken);
 
         if (user is null)
         {
@@ -41,9 +38,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
                 StatusCodes.Status401Unauthorized);
         }
 
-        var note = await _unitOfWork.NoteRepository.GetOneAsync(
-            note => note.Uuid == request.NoteUuid,
-            cancellationToken: cancellationToken);
+        var note = await _unitOfWork.NoteRepository.GetByIdentityAsync(request.NoteUuid, cancellationToken: cancellationToken);
 
         if (note is null)
         {
