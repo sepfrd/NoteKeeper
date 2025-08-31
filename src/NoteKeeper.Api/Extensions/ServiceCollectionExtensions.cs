@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NoteKeeper.Api.Authentication;
+using NoteKeeper.Api.Constants;
 using NoteKeeper.Api.Transformers;
 using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
 using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
@@ -36,6 +37,8 @@ using NoteKeeper.Infrastructure.Services;
 using NoteKeeper.Infrastructure.Validators;
 using NoteKeeper.Shared.Utilities;
 using StackExchange.Redis;
+using VaultSharp;
+using VaultSharp.V1.AuthMethods.Token;
 using CorsConstants = NoteKeeper.Api.Constants.CorsConstants;
 
 namespace NoteKeeper.Api.Extensions;
@@ -44,12 +47,14 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationDependencies(this IServiceCollection services, IConfiguration configuration)
     {
-        var appOptions = configuration.Get<AppOptions>()!;
+        var useVault = configuration.GetValue<bool>(KeyConstants.UseVaultEnvironmentVariableKey);
+
+        var appOptions = useVault ? GetAppOptionsFromVault(configuration) : configuration.Get<AppOptions>()!;
 
         ConfigureMapster();
 
         services
-            .AddSingleton(Options.Create(appOptions))
+            .AddAppOptions(appOptions)
             .AddHttpContextAccessor()
             .AddHttpClients(appOptions.HttpClientOptions)
             .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
@@ -226,6 +231,38 @@ public static class ServiceCollectionExtensions
             .AddHttpClient<NotionOAuth2Service>(client =>
                 client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
             .Services;
+
+    private static IServiceCollection AddAppOptions(this IServiceCollection services, AppOptions appOptions) =>
+        services.Configure<AppOptions>(options =>
+        {
+            options.BaseApiUrl = appOptions.BaseApiUrl;
+            options.CorsOptions = appOptions.CorsOptions;
+            options.DatabaseConnectionString = appOptions.DatabaseConnectionString;
+            options.GoogleOAuthOptions = appOptions.GoogleOAuthOptions;
+            options.HttpClientOptions = appOptions.HttpClientOptions;
+            options.JwtOptions = appOptions.JwtOptions;
+            options.NotionOAuthOptions = appOptions.NotionOAuthOptions;
+            options.RedisOptions = appOptions.RedisOptions;
+        });
+
+    private static AppOptions GetAppOptionsFromVault(IConfiguration configuration)
+    {
+        var vaultOptions = configuration.GetSection(nameof(VaultOptions)).Get<VaultOptions>()!;
+
+        var authMethod = new TokenAuthMethodInfo(vaultOptions.Token);
+        var vaultClientSettings = new VaultClientSettings(vaultOptions.ServerUri, authMethod);
+        var vaultClient = new VaultClient(vaultClientSettings);
+
+        var configs = vaultClient.V1.Secrets.KeyValue.V2
+            .ReadSecretAsync<AppOptions>(path: vaultOptions.SecretsPath, mountPoint: vaultOptions.MountPoint)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult()
+            .Data
+            .Data;
+
+        return configs;
+    }
 
     private static void ConfigureMapster()
     {
