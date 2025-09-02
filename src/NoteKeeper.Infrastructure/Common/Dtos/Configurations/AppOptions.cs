@@ -1,3 +1,5 @@
+using NoteKeeper.Infrastructure.Common.Dtos.Configurations.RateLimiters;
+
 namespace NoteKeeper.Infrastructure.Common.Dtos.Configurations;
 
 public record AppOptions
@@ -13,6 +15,8 @@ public record AppOptions
     public required GoogleOAuthOptions GoogleOAuthOptions { get; set; }
 
     public required HttpClientOptions HttpClientOptions { get; set; }
+
+    public required CustomRateLimitersOptions RateLimitersOptions { get; set; }
 
     public required string DatabaseConnectionString { get; set; }
 

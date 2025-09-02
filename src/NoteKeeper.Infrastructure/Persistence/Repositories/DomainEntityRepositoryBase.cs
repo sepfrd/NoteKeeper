@@ -8,11 +8,9 @@ namespace NoteKeeper.Infrastructure.Persistence.Repositories;
 public class DomainEntityRepositoryBase<TEntity> : RepositoryBase<TEntity, long>, IDomainEntityRepositoryBase<TEntity>
     where TEntity : DomainEntity
 {
-    protected readonly DbSet<TEntity> _dbSet;
-
-    public DomainEntityRepositoryBase(DbSet<TEntity> dbSet, IDbConnectionPool dbConnectionPool) : base(dbSet, dbConnectionPool)
+    public DomainEntityRepositoryBase(DbSet<TEntity> dbSet, IDbConnectionPool dbConnectionPool)
+        : base(dbSet, dbConnectionPool)
     {
-        _dbSet = dbSet;
     }
 
     public async Task<TEntity?> GetByIdentityAsync(Guid identity, CancellationToken cancellationToken = default) =>

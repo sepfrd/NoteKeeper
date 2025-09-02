@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using BCrypt.Net;
 using FluentValidation;
 using Mapster;
@@ -26,6 +27,7 @@ using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Common.Dtos.Configurations;
+using NoteKeeper.Infrastructure.Common.Dtos.Configurations.RateLimiters;
 using NoteKeeper.Infrastructure.ExternalServices;
 using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google;
 using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Models;
@@ -59,6 +61,7 @@ public static class ServiceCollectionExtensions
             .AddHttpClients(appOptions.HttpClientOptions)
             .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
             .AddMemoryCacheEntryOptions()
+            .AddRateLimiters(appOptions.RateLimitersOptions)
             .AddOpenApi(options =>
                 options
                     .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
@@ -232,6 +235,76 @@ public static class ServiceCollectionExtensions
                 client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
             .Services;
 
+    public static IServiceCollection AddRateLimiters(this IServiceCollection services, CustomRateLimitersOptions rateLimiterOptions) =>
+        services.AddRateLimiter(limiterOptions =>
+        {
+            limiterOptions.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                    var userUuid = authService.GetSignedInUserUuid();
+
+                    var userKey = !string.IsNullOrEmpty(userUuid)
+                        ? userUuid
+                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        userKey,
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = rateLimiterOptions.FixedWindowRateLimiterOptions!.PermitLimit,
+                            Window = TimeSpan.FromSeconds(rateLimiterOptions.FixedWindowRateLimiterOptions.WindowSeconds),
+                            QueueLimit = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueLimit,
+                            QueueProcessingOrder = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueProcessingOrder,
+                            AutoReplenishment = rateLimiterOptions.FixedWindowRateLimiterOptions.AutoReplenishment
+                        });
+                }),
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                    var userUuid = authService.GetSignedInUserUuid();
+
+                    var userKey = !string.IsNullOrEmpty(userUuid)
+                        ? userUuid
+                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                    return RateLimitPartition.GetConcurrencyLimiter(
+                        userKey,
+                        _ => new ConcurrencyLimiterOptions
+                        {
+                            PermitLimit = rateLimiterOptions.ConcurrencyLimiterOptions!.PermitLimit,
+                            QueueLimit = rateLimiterOptions.ConcurrencyLimiterOptions.QueueLimit,
+                            QueueProcessingOrder = rateLimiterOptions.ConcurrencyLimiterOptions.QueueProcessingOrder
+                        });
+                }),
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                    var userUuid = authService.GetSignedInUserUuid();
+
+                    var userKey = !string.IsNullOrEmpty(userUuid)
+                        ? userUuid
+                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                    return RateLimitPartition.GetTokenBucketLimiter(
+                        userKey,
+                        _ => new TokenBucketRateLimiterOptions
+                        {
+                            AutoReplenishment = rateLimiterOptions.TokenBucketRateLimiterOptions!.AutoReplenishment,
+                            QueueLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueLimit,
+                            QueueProcessingOrder = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueProcessingOrder,
+                            ReplenishmentPeriod = TimeSpan.FromSeconds(rateLimiterOptions.TokenBucketRateLimiterOptions.ReplenishmentPeriodSeconds),
+                            TokenLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.TokenLimit,
+                            TokensPerPeriod = rateLimiterOptions.TokenBucketRateLimiterOptions.TokensPerPeriod
+                        });
+                }));
+
+            limiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        });
+
     private static IServiceCollection AddAppOptions(this IServiceCollection services, AppOptions appOptions) =>
         services.Configure<AppOptions>(options =>
         {
@@ -240,6 +313,7 @@ public static class ServiceCollectionExtensions
             options.DatabaseConnectionString = appOptions.DatabaseConnectionString;
             options.GoogleOAuthOptions = appOptions.GoogleOAuthOptions;
             options.HttpClientOptions = appOptions.HttpClientOptions;
+            options.RateLimitersOptions = appOptions.RateLimitersOptions;
             options.JwtOptions = appOptions.JwtOptions;
             options.NotionOAuthOptions = appOptions.NotionOAuthOptions;
             options.RedisOptions = appOptions.RedisOptions;

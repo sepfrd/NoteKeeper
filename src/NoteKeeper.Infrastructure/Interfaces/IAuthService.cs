@@ -12,7 +12,7 @@ public interface IAuthService
 
     Task<DomainResult<AuthResponseDto?>> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
 
-    string GetSignedInUserUuid();
+    string? GetSignedInUserUuid();
 
     Task<User?> GetSignedInUserAsync(
         IEnumerable<Expression<Func<User, object?>>>? includes = null,

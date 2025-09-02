@@ -25,6 +25,8 @@ try
         options.Title = "Note Keeper";
     });
 
+    app.UseRateLimiter();
+
     app.UseCors(app.Environment.IsProduction()
         ? CorsConstants.RestrictedCorsPolicy
         : CorsConstants.AllowAnyOriginCorsPolicy);

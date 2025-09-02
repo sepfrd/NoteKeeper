@@ -63,7 +63,7 @@ public class NoteController : ControllerBase
             return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
         }
 
-        var signedInUserUuid = _authService.GetSignedInUserUuid();
+        var signedInUserUuid = _authService.GetSignedInUserUuid()!;
 
         var command = new CreateNoteCommand(
             createNoteRequestDto.Title,
@@ -82,7 +82,7 @@ public class NoteController : ControllerBase
         [FromQuery] NoteFilterDto? noteFilterDto,
         CancellationToken cancellationToken)
     {
-        var signedInUserUuid = _authService.GetSignedInUserUuid();
+        var signedInUserUuid = _authService.GetSignedInUserUuid()!;
 
         noteFilterDto ??= new NoteFilterDto();
 
@@ -120,7 +120,7 @@ public class NoteController : ControllerBase
             return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
         }
 
-        var signedInUserUuid = _authService.GetSignedInUserUuid();
+        var signedInUserUuid = _authService.GetSignedInUserUuid()!;
 
         var command = new UpdateNoteCommand(
             noteUuid,
@@ -137,7 +137,7 @@ public class NoteController : ControllerBase
     [Route("uuid/{noteUuid:guid}")]
     public async Task<IActionResult> DeleteNoteByUuidAsync([FromRoute] Guid noteUuid, CancellationToken cancellationToken)
     {
-        var signedInUserUuid = _authService.GetSignedInUserUuid();
+        var signedInUserUuid = _authService.GetSignedInUserUuid()!;
 
         var command = new DeleteNoteCommand(
             noteUuid,
