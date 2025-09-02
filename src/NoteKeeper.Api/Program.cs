@@ -17,6 +17,8 @@ try
 
     await app.InitializeDatabaseAsync();
 
+    app.UseExceptionHandler();
+
     app.MapOpenApi();
     app.MapScalarApiReference(options =>
     {
@@ -24,6 +26,8 @@ try
         options.Theme = ScalarTheme.BluePlanet;
         options.Title = "Note Keeper";
     });
+
+    app.UseRouting();
 
     app.UseRateLimiter();
 

@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NoteKeeper.Api.Authentication;
 using NoteKeeper.Api.Constants;
+using NoteKeeper.Api.ExceptionHandlers;
 using NoteKeeper.Api.Transformers;
 using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
 using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
@@ -77,6 +78,8 @@ public static class ServiceCollectionExtensions
             .AddExternalServices()
             .AddValidatorsFromAssemblyContaining<CreateUserCommandValidator>(ServiceLifetime.Singleton)
             .AddCors(appOptions.CorsOptions)
+            .AddExceptionHandler<GlobalExceptionHandler>()
+            .AddProblemDetails()
             .AddSingleton<IDbConnectionPool, DbConnectionPool>(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
@@ -244,6 +247,8 @@ public static class ServiceCollectionExtensions
                     var authService = context.RequestServices.GetRequiredService<IAuthService>();
 
                     var userUuid = authService.GetSignedInUserUuid();
+
+                    throw new InvalidOperationException();
 
                     var userKey = !string.IsNullOrEmpty(userUuid)
                         ? userUuid
