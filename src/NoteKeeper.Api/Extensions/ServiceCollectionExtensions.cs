@@ -248,8 +248,6 @@ public static class ServiceCollectionExtensions
 
                     var userUuid = authService.GetSignedInUserUuid();
 
-                    throw new InvalidOperationException();
-
                     var userKey = !string.IsNullOrEmpty(userUuid)
                         ? userUuid
                         : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
