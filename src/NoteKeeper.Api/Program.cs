@@ -2,8 +2,20 @@ using DotNetEnv;
 using NoteKeeper.Api.Constants;
 using NoteKeeper.Api.Extensions;
 using Scalar.AspNetCore;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("System", LogEventLevel.Information)
+    .WriteTo.Console()
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .CreateBootstrapLogger();
 
 try
 {
@@ -11,7 +23,11 @@ try
 
     builder.Configuration.AddEnvironmentVariables();
 
-    builder.Services.AddApplicationDependencies(builder.Configuration);
+    builder.Logging.ClearProviders();
+
+    var appOptions = builder.Services.AddApplicationDependencies(
+        builder.Configuration,
+        builder.Environment);
 
     var app = builder.Build();
 
@@ -24,7 +40,7 @@ try
     {
         options.DarkMode = true;
         options.Theme = ScalarTheme.BluePlanet;
-        options.Title = "Note Keeper";
+        options.Title = appOptions.AppInformation.Name;
     });
 
     app.UseRouting();
@@ -39,6 +55,8 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    Log.Logger.Information("App started");
 
     app.Run();
 }

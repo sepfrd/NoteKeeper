@@ -18,7 +18,9 @@ public record AppOptions
 
     public required CustomRateLimitersOptions RateLimitersOptions { get; set; }
 
-    public required string DatabaseConnectionString { get; set; }
+    public required AppInformationDto AppInformation { get; set; }
 
-    public required string BaseApiUrl { get; set; }
+    public required string OpenTelemetryEndpoint { get; set; }
+
+    public required string DatabaseConnectionString { get; set; }
 }

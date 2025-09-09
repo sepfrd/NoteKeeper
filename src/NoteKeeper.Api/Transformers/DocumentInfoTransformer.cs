@@ -20,7 +20,7 @@ public class DocumentInfoTransformer : IOpenApiDocumentTransformer
         [
             new OpenApiServer
             {
-                Url = _appOptions.BaseApiUrl
+                Url = _appOptions.AppInformation.ApiUrl
             }
         ];
 

@@ -39,6 +39,13 @@ using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Infrastructure.Services;
 using NoteKeeper.Infrastructure.Validators;
 using NoteKeeper.Shared.Utilities;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.OpenTelemetry;
 using StackExchange.Redis;
 using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
@@ -48,7 +55,10 @@ namespace NoteKeeper.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplicationDependencies(this IServiceCollection services, IConfiguration configuration)
+    public static AppOptions AddApplicationDependencies(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         var useVault = configuration.GetValue<bool>(KeyConstants.UseVaultEnvironmentVariableKey);
 
@@ -57,7 +67,9 @@ public static class ServiceCollectionExtensions
         ConfigureMapster();
 
         services
-            .AddAppOptions(appOptions)
+            .AddSingleton(Options.Create(appOptions))
+            .AddSerilog(environment, appOptions)
+            .AddOpenTelemetryServices(environment, appOptions)
             .AddHttpContextAccessor()
             .AddHttpClients(appOptions.HttpClientOptions)
             .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
@@ -89,7 +101,7 @@ public static class ServiceCollectionExtensions
                 return DbConnectionPool.Instance;
             });
 
-        return services;
+        return appOptions;
     }
 
     public static IServiceCollection AddApiControllers(this IServiceCollection services) =>
@@ -308,18 +320,93 @@ public static class ServiceCollectionExtensions
             limiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         });
 
-    private static IServiceCollection AddAppOptions(this IServiceCollection services, AppOptions appOptions) =>
-        services.Configure<AppOptions>(options =>
+    public static IServiceCollection AddOpenTelemetryServices(this IServiceCollection services, IWebHostEnvironment environment, AppOptions appOptions)
+    {
+        var openTelemetryBuilder = services.AddOpenTelemetry();
+
+        openTelemetryBuilder
+            .ConfigureResource(resource =>
+                resource
+                    .AddService(appOptions.AppInformation.Name, serviceVersion: appOptions.AppInformation.Version));
+
+        openTelemetryBuilder
+            .WithMetrics(metrics =>
+                metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddMeter("Microsoft.AspNetCore.Hosting")
+                    .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
+                    .AddMeter("System.Net.Http")
+                    .AddMeter("System.Net.NameResolution")
+                    .AddOtlpExporter(exporterOptions =>
+                    {
+                        exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint);
+                        exporterOptions.Protocol = OtlpExportProtocol.Grpc;
+                    }));
+
+        openTelemetryBuilder
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddSource(appOptions.AppInformation.Name);
+
+                if (!string.IsNullOrWhiteSpace(appOptions.OpenTelemetryEndpoint))
+                {
+                    tracing
+                        .AddOtlpExporter(exporterOptions =>
+                            exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint));
+                }
+                else
+                {
+                    tracing.AddConsoleExporter();
+                }
+            });
+
+        return services;
+    }
+
+    public static IServiceCollection AddSerilog(
+        this IServiceCollection services,
+        IWebHostEnvironment environment,
+        AppOptions appOptions) =>
+        services.AddSerilog((_, loggerConfiguration) =>
         {
-            options.BaseApiUrl = appOptions.BaseApiUrl;
-            options.CorsOptions = appOptions.CorsOptions;
-            options.DatabaseConnectionString = appOptions.DatabaseConnectionString;
-            options.GoogleOAuthOptions = appOptions.GoogleOAuthOptions;
-            options.HttpClientOptions = appOptions.HttpClientOptions;
-            options.RateLimitersOptions = appOptions.RateLimitersOptions;
-            options.JwtOptions = appOptions.JwtOptions;
-            options.NotionOAuthOptions = appOptions.NotionOAuthOptions;
-            options.RedisOptions = appOptions.RedisOptions;
+            // Minimum levels
+            if (environment.IsProduction())
+            {
+                loggerConfiguration
+                    .MinimumLevel.Warning()
+                    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                    .MinimumLevel.Override("System", LogEventLevel.Warning);
+            }
+            else
+            {
+                loggerConfiguration
+                    .MinimumLevel.Information()
+                    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                    .MinimumLevel.Override("System", LogEventLevel.Information);
+            }
+
+            loggerConfiguration
+                // Enrichers
+                .Enrich.FromLogContext()
+                .Enrich.WithEnvironmentName()
+                .Enrich.WithProcessId()
+                .Enrich.WithThreadId()
+                // Sinks
+                .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level}]{NewLine}Message: {Message:lj}{NewLine}SourceContext: {SourceContext}{NewLine}{Exception}")
+                .WriteTo.OpenTelemetry(sinkOptions =>
+                {
+                    sinkOptions.Endpoint = appOptions.OpenTelemetryEndpoint;
+                    sinkOptions.Protocol = OtlpProtocol.Grpc;
+                    sinkOptions.ResourceAttributes = new Dictionary<string, object>
+                    {
+                        { "service.name", appOptions.AppInformation.Name },
+                        { "service.version", appOptions.AppInformation.Version },
+                        { "deployment.environment", environment.EnvironmentName }
+                    };
+                });
         });
 
     private static AppOptions GetAppOptionsFromVault(IConfiguration configuration)
