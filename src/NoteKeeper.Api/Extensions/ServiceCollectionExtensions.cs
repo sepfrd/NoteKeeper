@@ -337,6 +337,7 @@ public static class ServiceCollectionExtensions
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
                     .AddMeter("System.Net.Http")
                     .AddMeter("System.Net.NameResolution")
+                    .AddMeter(appOptions.AppInformation.Name)
                     .AddOtlpExporter(exporterOptions =>
                     {
                         exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint);
