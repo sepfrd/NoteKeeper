@@ -107,7 +107,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         var base64EncodedAuthenticationString = Convert.ToBase64String(Encoding.ASCII.GetBytes(authenticationString));
 
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(AuthenticationSchemes.Basic.ToString(), base64EncodedAuthenticationString);
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(nameof(AuthenticationSchemes.Basic), base64EncodedAuthenticationString);
 
         request.Content = content;
 

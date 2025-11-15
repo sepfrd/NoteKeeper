@@ -31,19 +31,4 @@ public class RedisService : IRedisService
         await _connectionMultiplexer
             .GetDatabase(database)
             .KeyDeleteAsync(key);
-
-    public async Task<bool> ValueExistsInSetAsync(string redisSetName, string value, int database = 0) =>
-        await _connectionMultiplexer
-            .GetDatabase(database)
-            .SetContainsAsync(redisSetName, value);
-
-    public async Task<bool> AddValueToSetAsync(string redisSetName, string value, int database = 0) =>
-        await _connectionMultiplexer
-            .GetDatabase(database)
-            .SetAddAsync(redisSetName, value);
-
-    public async Task<bool> RemoveValueFromSetAsync(string redisSetName, string value, int database = 0) =>
-        await _connectionMultiplexer
-            .GetDatabase(database)
-            .SetRemoveAsync(redisSetName, value);
 }

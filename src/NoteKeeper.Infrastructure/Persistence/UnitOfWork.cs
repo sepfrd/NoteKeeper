@@ -16,7 +16,6 @@ public class UnitOfWork : DbContext, IUnitOfWork
 
     private UserRepository? _userRepository;
     private NoteRepository? _noteRepository;
-    private IExternalProviderAccountRepository? _externalProviderAccountRepository;
     private GoogleTokenRepository? _googleTokenRepository;
     private NotionTokenRepository? _notionTokenRepository;
 
@@ -50,7 +49,7 @@ public class UnitOfWork : DbContext, IUnitOfWork
 
     public INoteRepository NoteRepository => _noteRepository ??= new NoteRepository(Notes, _dbConnectionPool);
 
-    public IExternalProviderAccountRepository ExternalProviderAccountRepository => _externalProviderAccountRepository ??= new ExternalProviderAccountRepository(ExternalProviderAccounts, _dbConnectionPool);
+    public IExternalProviderAccountRepository ExternalProviderAccountRepository => field ??= new ExternalProviderAccountRepository(ExternalProviderAccounts, _dbConnectionPool);
 
     public INotionTokenRepository NotionTokenRepository => _notionTokenRepository ??= new NotionTokenRepository(NotionTokens, _dbConnectionPool);
 

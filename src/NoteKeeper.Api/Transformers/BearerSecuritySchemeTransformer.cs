@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using NoteKeeper.Api.Authentication;
 
 namespace NoteKeeper.Api.Transformers;
@@ -16,9 +16,9 @@ public sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvide
                 authScheme.Name == JwtBearerDefaults.AuthenticationScheme ||
                 authScheme.Name == Ed25519JwtAuthenticationSchemeOptions.DefaultScheme))
         {
-            var requirements = new Dictionary<string, OpenApiSecurityScheme>
+            var requirements = new Dictionary<string, IOpenApiSecurityScheme>
             {
-                [JwtBearerDefaults.AuthenticationScheme] = new()
+                [JwtBearerDefaults.AuthenticationScheme] = new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
                     Scheme = JwtBearerDefaults.AuthenticationScheme,
@@ -30,18 +30,20 @@ public sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvide
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes = requirements;
 
-            foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations))
+            foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations!))
             {
-                operation.Value.Security.Add(new OpenApiSecurityRequirement
+                operation.Value.Security?.Add(new OpenApiSecurityRequirement
                 {
-                    [new OpenApiSecurityScheme
+                    [new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme)
                     {
-                        Reference = new OpenApiReference
+                        Reference = new OpenApiReferenceWithDescription
                         {
                             Id = "Bearer",
                             Type = ReferenceType.SecurityScheme
-                        }
-                    }] = Array.Empty<string>()
+                        },
+
+                        Description = operation.Value.Description
+                    }] = []
                 });
             }
         }

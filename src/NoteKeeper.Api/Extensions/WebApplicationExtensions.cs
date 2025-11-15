@@ -5,12 +5,15 @@ namespace NoteKeeper.Api.Extensions;
 
 public static class WebApplicationExtensions
 {
-    public static async Task InitializeDatabaseAsync(this WebApplication webApplication)
+    extension(WebApplication webApplication)
     {
-        await using var scope = webApplication.Services.CreateAsyncScope();
+        public async Task InitializeDatabaseAsync()
+        {
+            await using var scope = webApplication.Services.CreateAsyncScope();
 
-        await using var context = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+            await using var context = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
 
-        await context.Database.MigrateAsync();
+            await context.Database.MigrateAsync();
+        }
     }
 }

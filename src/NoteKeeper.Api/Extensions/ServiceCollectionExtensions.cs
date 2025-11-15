@@ -55,360 +55,358 @@ namespace NoteKeeper.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static AppOptions AddApplicationDependencies(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        IWebHostEnvironment environment)
+    extension(IServiceCollection services)
     {
-        var useVault = configuration.GetValue<bool>(KeyConstants.UseVaultEnvironmentVariableKey);
-
-        var appOptions = useVault ? GetAppOptionsFromVault(configuration) : configuration.Get<AppOptions>()!;
-
-        ConfigureMapster();
-
-        services
-            .AddSingleton(Options.Create(appOptions))
-            .AddSerilog(environment, appOptions)
-            .AddOpenTelemetryServices(environment, appOptions)
-            .AddHttpContextAccessor()
-            .AddHttpClients(appOptions.HttpClientOptions)
-            .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
-            .AddMemoryCacheEntryOptions()
-            .AddRateLimiters(appOptions.RateLimitersOptions)
-            .AddOpenApi(options =>
-                options
-                    .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
-                    .AddDocumentTransformer<DocumentInfoTransformer>())
-            .AddApiControllers()
-            .AddServices()
-            .AddCommandHandlers()
-            .AddQueryHandlers()
-            .AddDatabase(appOptions)
-            .AddAuth()
-            .AddJsonSerializerOptions()
-            .AddRedisConnectionMultiplexer(appOptions.RedisOptions)
-            .AddExternalServices()
-            .AddValidatorsFromAssemblyContaining<CreateUserCommandValidator>(ServiceLifetime.Singleton)
-            .AddCors(appOptions.CorsOptions)
-            .AddExceptionHandler<GlobalExceptionHandler>()
-            .AddProblemDetails()
-            .AddSingleton<IDbConnectionPool, DbConnectionPool>(serviceProvider =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
-
-                DbConnectionPool.Initialize(options.DatabaseConnectionString);
-
-                return DbConnectionPool.Instance;
-            });
-
-        return appOptions;
-    }
-
-    public static IServiceCollection AddApiControllers(this IServiceCollection services) =>
-        services
-            .AddControllers()
-            .AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            })
-            .Services
-            .AddEndpointsApiExplorer();
-
-    public static IServiceCollection AddServices(this IServiceCollection services) =>
-        services
-            .AddScoped<IAuthService, AuthService>()
-            .AddScoped<ITokenService, TokenService>()
-            .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
-            .AddScoped<INotionOAuth2Service, NotionOAuth2Service>()
-            .AddScoped<IMappingService, MappingService>();
-
-    public static IServiceCollection AddCommandHandlers(this IServiceCollection services) =>
-        services
-            .AddScoped<ICommandHandler<CreateUserCommand, DomainResult<UserDto>>, CreateUserCommandHandler>()
-            .AddScoped<ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>>, CreateNoteCommandHandler>()
-            .AddScoped<ICommandHandler<DeleteNoteCommand, DomainResult>, DeleteNoteCommandHandler>()
-            .AddScoped<ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>>, UpdateNoteCommandHandler>();
-
-    public static IServiceCollection AddQueryHandlers(this IServiceCollection services) =>
-        services
-            .AddScoped<IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>, GetAllNotesByFilterQueryHandler>()
-            .AddScoped<IQueryHandler<GetAllNotesCountQuery, DomainResult<long>>, GetAllNotesCountQueryHandler>()
-            .AddScoped<IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>>, GetSingleNoteQueryHandler>();
-
-    public static IServiceCollection AddDatabase(this IServiceCollection services, AppOptions appOptions) =>
-        services
-            .AddDbContext<IUnitOfWork, UnitOfWork>(options =>
-                options
-                    .UseNpgsql(appOptions.DatabaseConnectionString)
-                    .EnableSensitiveDataLogging()
-                    .UseSeeding((dbContext, _) => dbContext.SeedDatabase())
-                    .UseAsyncSeeding((dbContext, _, _) => Task.FromResult(dbContext.SeedDatabase())));
-
-    public static IServiceCollection AddAuth(this IServiceCollection services) =>
-        services
-            .AddAuthentication(options =>
-            {
-                options.DefaultScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
-                options.DefaultChallengeScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
-                options.DefaultForbidScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
-                options.DefaultAuthenticateScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
-            })
-            .AddScheme<Ed25519JwtAuthenticationSchemeOptions, Ed25519JwtAuthenticationHandler>(
-                Ed25519JwtAuthenticationSchemeOptions.DefaultScheme,
-                _ => { })
-            .Services
-            .AddAuthorization();
-
-    public static IServiceCollection AddJsonSerializerOptions(this IServiceCollection services) =>
-        services
-            .AddSingleton(new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-    public static IServiceCollection AddMemoryCacheEntryOptions(this IServiceCollection services) =>
-        services
-            .AddSingleton(new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5d)
-            });
-
-    public static IServiceCollection AddRedisConnectionMultiplexer(this IServiceCollection services, RedisOptions redisOptions)
-    {
-        var redisConnectionString = $"{redisOptions.Endpoint}:{redisOptions.Port}";
-
-        var redisConfigurationOptions = new ConfigurationOptions
+        public AppOptions AddApplicationDependencies(IConfiguration configuration, IWebHostEnvironment environment)
         {
-            Ssl = redisOptions.UseSsl,
-            User = redisOptions.User,
-            Password = redisOptions.Password,
-            KeepAlive = redisOptions.KeepAlive,
-            ConnectTimeout = redisOptions.ConnectTimeout,
-            ConnectRetry = redisOptions.RetryAttempts,
-            ClientName = redisOptions.ClientName,
-            DefaultDatabase = redisOptions.Databases.Default,
-            EndPoints = { redisConnectionString },
-            AbortOnConnectFail = false
-        };
+            var useVault = configuration.GetValue<bool>(KeyConstants.UseVaultEnvironmentVariableKey);
 
-        var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConfigurationOptions);
+            var appOptions = useVault ? GetAppOptionsFromVault(configuration) : configuration.Get<AppOptions>()!;
 
-        connectionMultiplexer.GetDatabase().KeyDelete(RedisConstants.NotesSubscriptionSetKey);
+            ConfigureMapster();
 
-        services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+            services
+                .AddSingleton(Options.Create(appOptions))
+                .AddSerilog(environment, appOptions)
+                .AddOpenTelemetryServices(environment, appOptions)
+                .AddHttpContextAccessor()
+                .AddHttpClients(appOptions.HttpClientOptions)
+                .AddMemoryCache(options => options.ExpirationScanFrequency = TimeSpan.FromHours(1d))
+                .AddMemoryCacheEntryOptions()
+                .AddRateLimiters(appOptions.RateLimitersOptions)
+                .AddOpenApi(options =>
+                    options
+                        .AddDocumentTransformer<BearerSecuritySchemeTransformer>()
+                        .AddDocumentTransformer<DocumentInfoTransformer>())
+                .AddApiControllers()
+                .AddServices()
+                .AddCommandHandlers()
+                .AddQueryHandlers()
+                .AddDatabase(appOptions)
+                .AddAuth()
+                .AddJsonSerializerOptions()
+                .AddRedisConnectionMultiplexer(appOptions.RedisOptions)
+                .AddExternalServices()
+                .AddValidatorsFromAssemblyContaining<CreateUserCommandValidator>(ServiceLifetime.Singleton)
+                .AddCors(appOptions.CorsOptions)
+                .AddExceptionHandler<GlobalExceptionHandler>()
+                .AddProblemDetails()
+                .AddSingleton<IDbConnectionPool, DbConnectionPool>(serviceProvider =>
+                {
+                    var options = serviceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
 
-        return services;
-    }
+                    DbConnectionPool.Initialize(options.DatabaseConnectionString);
 
-    public static IServiceCollection AddExternalServices(this IServiceCollection services) =>
-        services
-            .AddScoped<IRedisService, RedisService>();
+                    return DbConnectionPool.Instance;
+                });
 
-    public static IServiceCollection AddCors(this IServiceCollection services, CorsOptions corsOptions) =>
-        services.AddCors(options =>
+            return appOptions;
+        }
+
+        public IServiceCollection AddApiControllers() =>
+            services
+                .AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                })
+                .Services
+                .AddEndpointsApiExplorer();
+
+        public IServiceCollection AddServices() =>
+            services
+                .AddScoped<IAuthService, AuthService>()
+                .AddScoped<ITokenService, TokenService>()
+                .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
+                .AddScoped<INotionOAuth2Service, NotionOAuth2Service>()
+                .AddScoped<IMappingService, MappingService>();
+
+        public IServiceCollection AddCommandHandlers() =>
+            services
+                .AddScoped<ICommandHandler<CreateUserCommand, DomainResult<UserDto>>, CreateUserCommandHandler>()
+                .AddScoped<ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>>, CreateNoteCommandHandler>()
+                .AddScoped<ICommandHandler<DeleteNoteCommand, DomainResult>, DeleteNoteCommandHandler>()
+                .AddScoped<ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>>, UpdateNoteCommandHandler>();
+
+        public IServiceCollection AddQueryHandlers() =>
+            services
+                .AddScoped<IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>, GetAllNotesByFilterQueryHandler>()
+                .AddScoped<IQueryHandler<GetAllNotesCountQuery, DomainResult<long>>, GetAllNotesCountQueryHandler>()
+                .AddScoped<IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>>, GetSingleNoteQueryHandler>();
+
+        public IServiceCollection AddDatabase(AppOptions appOptions) =>
+            services
+                .AddDbContext<IUnitOfWork, UnitOfWork>(options =>
+                    options
+                        .UseNpgsql(appOptions.DatabaseConnectionString)
+                        .EnableSensitiveDataLogging()
+                        .UseSeeding((dbContext, _) => dbContext.SeedDatabase())
+                        .UseAsyncSeeding((dbContext, _, _) => Task.FromResult(dbContext.SeedDatabase())));
+
+        public IServiceCollection AddAuth() =>
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
+                    options.DefaultChallengeScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
+                    options.DefaultForbidScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
+                    options.DefaultAuthenticateScheme = Ed25519JwtAuthenticationSchemeOptions.DefaultScheme;
+                })
+                .AddScheme<Ed25519JwtAuthenticationSchemeOptions, Ed25519JwtAuthenticationHandler>(
+                    Ed25519JwtAuthenticationSchemeOptions.DefaultScheme,
+                    _ => { })
+                .Services
+                .AddAuthorization();
+
+        public IServiceCollection AddJsonSerializerOptions() =>
+            services
+                .AddSingleton(new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+        public IServiceCollection AddMemoryCacheEntryOptions() =>
+            services
+                .AddSingleton(new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5d)
+                });
+
+        public IServiceCollection AddRedisConnectionMultiplexer(RedisOptions redisOptions)
         {
-            options.AddPolicy(CorsConstants.RestrictedCorsPolicy, builder =>
+            var redisConnectionString = $"{redisOptions.Endpoint}:{redisOptions.Port}";
+
+            var redisConfigurationOptions = new ConfigurationOptions
             {
-                builder
-                    .AllowAnyMethod()
-                    .WithHeaders(
-                        HeaderNames.Accept,
-                        HeaderNames.ContentType,
-                        HeaderNames.Authorization)
-                    .AllowCredentials()
-                    .SetIsOriginAllowed(origin =>
-                    {
-                        if (string.IsNullOrWhiteSpace(origin))
-                        {
-                            return false;
-                        }
+                Ssl = redisOptions.UseSsl,
+                User = redisOptions.User,
+                Password = redisOptions.Password,
+                KeepAlive = redisOptions.KeepAlive,
+                ConnectTimeout = redisOptions.ConnectTimeout,
+                ConnectRetry = redisOptions.RetryAttempts,
+                ClientName = redisOptions.ClientName,
+                DefaultDatabase = redisOptions.Databases.Default,
+                EndPoints = { redisConnectionString },
+                AbortOnConnectFail = false
+            };
 
-                        if (corsOptions.AllowedUrls.Contains(origin, StringComparer.InvariantCultureIgnoreCase))
-                        {
-                            return true;
-                        }
+            var connectionMultiplexer = ConnectionMultiplexer.Connect(redisConfigurationOptions);
 
-                        return false;
-                    });
-            });
+            connectionMultiplexer.GetDatabase().KeyDelete(RedisConstants.NotesSubscriptionSetKey);
 
-            options
-                .AddPolicy(CorsConstants.AllowAnyOriginCorsPolicy, builder =>
+            services.AddSingleton<IConnectionMultiplexer>(connectionMultiplexer);
+
+            return services;
+        }
+
+        public IServiceCollection AddExternalServices() =>
+            services
+                .AddScoped<IRedisService, RedisService>();
+
+        public IServiceCollection AddCors(CorsOptions corsOptions) =>
+            services.AddCors(options =>
+            {
+                options.AddPolicy(CorsConstants.RestrictedCorsPolicy, builder =>
+                {
                     builder
-                        .AllowAnyOrigin()
                         .AllowAnyMethod()
-                        .AllowAnyHeader());
-        });
-
-    public static IServiceCollection AddHttpClients(this IServiceCollection services, HttpClientOptions httpClientOptions) =>
-        services
-            .AddHttpClient<GoogleOAuth2Service>(client =>
-                client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
-            .Services
-            .AddHttpClient<NotionOAuth2Service>(client =>
-                client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
-            .Services;
-
-    public static IServiceCollection AddRateLimiters(this IServiceCollection services, CustomRateLimitersOptions rateLimiterOptions) =>
-        services.AddRateLimiter(limiterOptions =>
-        {
-            limiterOptions.GlobalLimiter = PartitionedRateLimiter.CreateChained(
-                PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                {
-                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
-
-                    var userUuid = authService.GetSignedInUserUuid();
-
-                    var userKey = !string.IsNullOrEmpty(userUuid)
-                        ? userUuid
-                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
-
-                    return RateLimitPartition.GetFixedWindowLimiter(
-                        userKey,
-                        _ => new FixedWindowRateLimiterOptions
+                        .WithHeaders(
+                            HeaderNames.Accept,
+                            HeaderNames.ContentType,
+                            HeaderNames.Authorization)
+                        .AllowCredentials()
+                        .SetIsOriginAllowed(origin =>
                         {
-                            PermitLimit = rateLimiterOptions.FixedWindowRateLimiterOptions!.PermitLimit,
-                            Window = TimeSpan.FromSeconds(rateLimiterOptions.FixedWindowRateLimiterOptions.WindowSeconds),
-                            QueueLimit = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueLimit,
-                            QueueProcessingOrder = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueProcessingOrder,
-                            AutoReplenishment = rateLimiterOptions.FixedWindowRateLimiterOptions.AutoReplenishment
+                            if (string.IsNullOrWhiteSpace(origin))
+                            {
+                                return false;
+                            }
+
+                            if (corsOptions.AllowedUrls.Contains(origin, StringComparer.InvariantCultureIgnoreCase))
+                            {
+                                return true;
+                            }
+
+                            return false;
                         });
-                }),
-                PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                {
-                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
+                });
 
-                    var userUuid = authService.GetSignedInUserUuid();
+                options
+                    .AddPolicy(CorsConstants.AllowAnyOriginCorsPolicy, builder =>
+                        builder
+                            .AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader());
+            });
 
-                    var userKey = !string.IsNullOrEmpty(userUuid)
-                        ? userUuid
-                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+        public IServiceCollection AddHttpClients(HttpClientOptions httpClientOptions) =>
+            services
+                .AddHttpClient<GoogleOAuth2Service>(client =>
+                    client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
+                .Services
+                .AddHttpClient<NotionOAuth2Service>(client =>
+                    client.Timeout = TimeSpan.FromMilliseconds(httpClientOptions.DefaultTimeoutInMilliseconds))
+                .Services;
 
-                    return RateLimitPartition.GetConcurrencyLimiter(
-                        userKey,
-                        _ => new ConcurrencyLimiterOptions
-                        {
-                            PermitLimit = rateLimiterOptions.ConcurrencyLimiterOptions!.PermitLimit,
-                            QueueLimit = rateLimiterOptions.ConcurrencyLimiterOptions.QueueLimit,
-                            QueueProcessingOrder = rateLimiterOptions.ConcurrencyLimiterOptions.QueueProcessingOrder
-                        });
-                }),
-                PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                {
-                    var authService = context.RequestServices.GetRequiredService<IAuthService>();
-
-                    var userUuid = authService.GetSignedInUserUuid();
-
-                    var userKey = !string.IsNullOrEmpty(userUuid)
-                        ? userUuid
-                        : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
-
-                    return RateLimitPartition.GetTokenBucketLimiter(
-                        userKey,
-                        _ => new TokenBucketRateLimiterOptions
-                        {
-                            AutoReplenishment = rateLimiterOptions.TokenBucketRateLimiterOptions!.AutoReplenishment,
-                            QueueLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueLimit,
-                            QueueProcessingOrder = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueProcessingOrder,
-                            ReplenishmentPeriod = TimeSpan.FromSeconds(rateLimiterOptions.TokenBucketRateLimiterOptions.ReplenishmentPeriodSeconds),
-                            TokenLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.TokenLimit,
-                            TokensPerPeriod = rateLimiterOptions.TokenBucketRateLimiterOptions.TokensPerPeriod
-                        });
-                }));
-
-            limiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        });
-
-    public static IServiceCollection AddOpenTelemetryServices(this IServiceCollection services, IWebHostEnvironment environment, AppOptions appOptions)
-    {
-        var openTelemetryBuilder = services.AddOpenTelemetry();
-
-        openTelemetryBuilder
-            .ConfigureResource(resource =>
-                resource
-                    .AddService(appOptions.AppInformation.Name, serviceVersion: appOptions.AppInformation.Version));
-
-        openTelemetryBuilder
-            .WithMetrics(metrics =>
-                metrics
-                    .AddAspNetCoreInstrumentation()
-                    .AddMeter("Microsoft.AspNetCore.Hosting")
-                    .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
-                    .AddMeter("System.Net.Http")
-                    .AddMeter("System.Net.NameResolution")
-                    .AddMeter(appOptions.AppInformation.Name)
-                    .AddOtlpExporter(exporterOptions =>
+        public IServiceCollection AddRateLimiters(CustomRateLimitersOptions rateLimiterOptions) =>
+            services.AddRateLimiter(limiterOptions =>
+            {
+                limiterOptions.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+                    PartitionedRateLimiter.Create<HttpContext, string>(context =>
                     {
-                        exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint);
-                        exporterOptions.Protocol = OtlpExportProtocol.Grpc;
+                        var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                        var userUuid = authService.GetSignedInUserUuid();
+
+                        var userKey = !string.IsNullOrEmpty(userUuid)
+                            ? userUuid
+                            : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                        return RateLimitPartition.GetFixedWindowLimiter(
+                            userKey,
+                            _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = rateLimiterOptions.FixedWindowRateLimiterOptions!.PermitLimit,
+                                Window = TimeSpan.FromSeconds(rateLimiterOptions.FixedWindowRateLimiterOptions.WindowSeconds),
+                                QueueLimit = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueLimit,
+                                QueueProcessingOrder = rateLimiterOptions.FixedWindowRateLimiterOptions.QueueProcessingOrder,
+                                AutoReplenishment = rateLimiterOptions.FixedWindowRateLimiterOptions.AutoReplenishment
+                            });
+                    }),
+                    PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                    {
+                        var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                        var userUuid = authService.GetSignedInUserUuid();
+
+                        var userKey = !string.IsNullOrEmpty(userUuid)
+                            ? userUuid
+                            : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                        return RateLimitPartition.GetConcurrencyLimiter(
+                            userKey,
+                            _ => new ConcurrencyLimiterOptions
+                            {
+                                PermitLimit = rateLimiterOptions.ConcurrencyLimiterOptions!.PermitLimit,
+                                QueueLimit = rateLimiterOptions.ConcurrencyLimiterOptions.QueueLimit,
+                                QueueProcessingOrder = rateLimiterOptions.ConcurrencyLimiterOptions.QueueProcessingOrder
+                            });
+                    }),
+                    PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                    {
+                        var authService = context.RequestServices.GetRequiredService<IAuthService>();
+
+                        var userUuid = authService.GetSignedInUserUuid();
+
+                        var userKey = !string.IsNullOrEmpty(userUuid)
+                            ? userUuid
+                            : context.Connection.RemoteIpAddress?.ToString() ?? KeyConstants.UnknownIPAddressKey;
+
+                        return RateLimitPartition.GetTokenBucketLimiter(
+                            userKey,
+                            _ => new TokenBucketRateLimiterOptions
+                            {
+                                AutoReplenishment = rateLimiterOptions.TokenBucketRateLimiterOptions!.AutoReplenishment,
+                                QueueLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueLimit,
+                                QueueProcessingOrder = rateLimiterOptions.TokenBucketRateLimiterOptions.QueueProcessingOrder,
+                                ReplenishmentPeriod = TimeSpan.FromSeconds(rateLimiterOptions.TokenBucketRateLimiterOptions.ReplenishmentPeriodSeconds),
+                                TokenLimit = rateLimiterOptions.TokenBucketRateLimiterOptions.TokenLimit,
+                                TokensPerPeriod = rateLimiterOptions.TokenBucketRateLimiterOptions.TokensPerPeriod
+                            });
                     }));
 
-        openTelemetryBuilder
-            .WithTracing(tracing =>
-            {
-                tracing
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddSource(appOptions.AppInformation.Name);
+                limiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            });
 
-                if (!string.IsNullOrWhiteSpace(appOptions.OpenTelemetryEndpoint))
+        public IServiceCollection AddOpenTelemetryServices(IWebHostEnvironment environment, AppOptions appOptions)
+        {
+            var openTelemetryBuilder = services.AddOpenTelemetry();
+
+            openTelemetryBuilder
+                .ConfigureResource(resource =>
+                    resource
+                        .AddService(appOptions.AppInformation.Name, serviceVersion: appOptions.AppInformation.Version));
+
+            openTelemetryBuilder
+                .WithMetrics(metrics =>
+                    metrics
+                        .AddAspNetCoreInstrumentation()
+                        .AddMeter("Microsoft.AspNetCore.Hosting")
+                        .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
+                        .AddMeter("System.Net.Http")
+                        .AddMeter("System.Net.NameResolution")
+                        .AddMeter(appOptions.AppInformation.Name)
+                        .AddOtlpExporter(exporterOptions =>
+                        {
+                            exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint);
+                            exporterOptions.Protocol = OtlpExportProtocol.Grpc;
+                        }));
+
+            openTelemetryBuilder
+                .WithTracing(tracing =>
                 {
                     tracing
-                        .AddOtlpExporter(exporterOptions =>
-                            exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint));
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddSource(appOptions.AppInformation.Name);
+
+                    if (!string.IsNullOrWhiteSpace(appOptions.OpenTelemetryEndpoint))
+                    {
+                        tracing
+                            .AddOtlpExporter(exporterOptions =>
+                                exporterOptions.Endpoint = new Uri(appOptions.OpenTelemetryEndpoint));
+                    }
+                    else
+                    {
+                        tracing.AddConsoleExporter();
+                    }
+                });
+
+            return services;
+        }
+
+        public IServiceCollection AddSerilog(IWebHostEnvironment environment,
+            AppOptions appOptions) =>
+            services.AddSerilog((_, loggerConfiguration) =>
+            {
+                // Minimum levels
+                if (environment.IsProduction())
+                {
+                    loggerConfiguration
+                        .MinimumLevel.Warning()
+                        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                        .MinimumLevel.Override("System", LogEventLevel.Warning);
                 }
                 else
                 {
-                    tracing.AddConsoleExporter();
+                    loggerConfiguration
+                        .MinimumLevel.Information()
+                        .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                        .MinimumLevel.Override("System", LogEventLevel.Information);
                 }
-            });
 
-        return services;
-    }
-
-    public static IServiceCollection AddSerilog(
-        this IServiceCollection services,
-        IWebHostEnvironment environment,
-        AppOptions appOptions) =>
-        services.AddSerilog((_, loggerConfiguration) =>
-        {
-            // Minimum levels
-            if (environment.IsProduction())
-            {
                 loggerConfiguration
-                    .MinimumLevel.Warning()
-                    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                    .MinimumLevel.Override("System", LogEventLevel.Warning);
-            }
-            else
-            {
-                loggerConfiguration
-                    .MinimumLevel.Information()
-                    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                    .MinimumLevel.Override("System", LogEventLevel.Information);
-            }
-
-            loggerConfiguration
-                // Enrichers
-                .Enrich.FromLogContext()
-                .Enrich.WithEnvironmentName()
-                .Enrich.WithProcessId()
-                .Enrich.WithThreadId()
-                // Sinks
-                .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level}]{NewLine}Message: {Message:lj}{NewLine}SourceContext: {SourceContext}{NewLine}{Exception}")
-                .WriteTo.OpenTelemetry(sinkOptions =>
-                {
-                    sinkOptions.Endpoint = appOptions.OpenTelemetryEndpoint;
-                    sinkOptions.Protocol = OtlpProtocol.Grpc;
-                    sinkOptions.ResourceAttributes = new Dictionary<string, object>
+                    // Enrichers
+                    .Enrich.FromLogContext()
+                    .Enrich.WithEnvironmentName()
+                    .Enrich.WithProcessId()
+                    .Enrich.WithThreadId()
+                    // Sinks
+                    .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level}]{NewLine}Message: {Message:lj}{NewLine}SourceContext: {SourceContext}{NewLine}{Exception}")
+                    .WriteTo.OpenTelemetry(sinkOptions =>
                     {
-                        { "service.name", appOptions.AppInformation.Name },
-                        { "service.version", appOptions.AppInformation.Version },
-                        { "deployment.environment", environment.EnvironmentName }
-                    };
-                });
-        });
+                        sinkOptions.Endpoint = appOptions.OpenTelemetryEndpoint;
+                        sinkOptions.Protocol = OtlpProtocol.Grpc;
+                        sinkOptions.ResourceAttributes = new Dictionary<string, object>
+                        {
+                            { "service.name", appOptions.AppInformation.Name },
+                            { "service.version", appOptions.AppInformation.Version },
+                            { "deployment.environment", environment.EnvironmentName }
+                        };
+                    });
+            });
+    }
 
     private static AppOptions GetAppOptionsFromVault(IConfiguration configuration)
     {

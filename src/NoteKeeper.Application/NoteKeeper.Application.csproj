@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\NoteKeeper.Domain\NoteKeeper.Domain.csproj" />
-        <ProjectReference Include="..\NoteKeeper.Shared\NoteKeeper.Shared.csproj" />
+        <ProjectReference Include="..\NoteKeeper.Domain\NoteKeeper.Domain.csproj"/>
+        <ProjectReference Include="..\NoteKeeper.Shared\NoteKeeper.Shared.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Humanizer.Core" Version="2.14.1" />
-        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
-        <PackageReference Include="StackExchange.Redis" Version="2.9.11" />
+        <PackageReference Include="Humanizer.Core" Version="2.14.1"/>
+        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+        <PackageReference Include="StackExchange.Redis" Version="2.9.32" />
     </ItemGroup>
 
 </Project>

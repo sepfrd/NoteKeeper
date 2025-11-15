@@ -11,10 +11,4 @@ public interface IRedisService
     Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null, int database = 0);
 
     Task<bool> DeleteKeyAsync(string key, int database = 0);
-
-    Task<bool> ValueExistsInSetAsync(string redisSetName, string value, int database = 0);
-
-    Task<bool> AddValueToSetAsync(string redisSetName, string value, int database = 0);
-
-    Task<bool> RemoveValueFromSetAsync(string redisSetName, string value, int database = 0);
 }

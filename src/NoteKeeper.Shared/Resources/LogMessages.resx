@@ -26,18 +26,6 @@
     <data name="MappingErrorTemplate" xml:space="preserve">
         <value>Could not map entity of type {SourceEntityType} to entity of type {DestinationEntityType}.</value>
     </data>
-    <data name="MappingErrorTemplate" xml:space="preserve">
-        <value>Could not map entity of type {SourceEntityType} to entity of type {DestinationEntityType}.</value>
-    </data>
-    <data name="MappingErrorTemplate" xml:space="preserve">
-        <value>Could not map entity of type {SourceEntityType} to entity of type {DestinationEntityType}.</value>
-    </data>
-    <data name="DatabasePersistenceErrorTemplate" xml:space="preserve">
-        <value>Could not persist changes of entity of type {EntityType} while trying to {ActionName}.</value>
-    </data>
-    <data name="DatabasePersistenceErrorTemplate" xml:space="preserve">
-        <value>Could not persist changes of entity of type {EntityType} while trying to {ActionName}.</value>
-    </data>
     <data name="DatabasePersistenceErrorTemplate" xml:space="preserve">
         <value>Could not persist changes of entity of type {EntityType} while trying to {ActionName}.</value>
     </data>

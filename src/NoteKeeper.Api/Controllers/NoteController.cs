@@ -6,7 +6,6 @@ using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
 using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
-using NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
 using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
 using NoteKeeper.Application.Interfaces.CQRS;
 using NoteKeeper.Domain.Common;
@@ -28,7 +27,6 @@ public class NoteController : ControllerBase
     private readonly ICommandHandler<DeleteNoteCommand, DomainResult> _deleteNoteCommandHandler;
     private readonly ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> _updateNoteCommandHandler;
     private readonly IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> _getAllNotesByFilterQueryHandler;
-    private readonly IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> _getAllNotesCountQueryHandler;
     private readonly IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>> _getNoteByUuidQueryHandler;
 
     public NoteController(
@@ -39,14 +37,12 @@ public class NoteController : ControllerBase
         ICommandHandler<DeleteNoteCommand, DomainResult> deleteNoteCommandHandler,
         ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>> updateNoteCommandHandler,
         IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>> getAllNotesByFilterQueryHandler,
-        IQueryHandler<GetAllNotesCountQuery, DomainResult<long>> getAllNotesCountQueryHandler,
         IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>> getNoteByUuidQueryHandler)
     {
         _createNoteCommandHandler = createNoteCommandHandler;
         _deleteNoteCommandHandler = deleteNoteCommandHandler;
         _updateNoteCommandHandler = updateNoteCommandHandler;
         _getAllNotesByFilterQueryHandler = getAllNotesByFilterQueryHandler;
-        _getAllNotesCountQueryHandler = getAllNotesCountQueryHandler;
         _getNoteByUuidQueryHandler = getNoteByUuidQueryHandler;
         _createNoteRequestDtoValidator = createNoteRequestDtoValidator;
         _updateNoteRequestDtoValidator = updateNoteRequestDtoValidator;
