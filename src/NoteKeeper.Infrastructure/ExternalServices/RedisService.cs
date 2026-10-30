@@ -25,7 +25,9 @@ public class RedisService : IRedisService
     public async Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null, int database = 0) =>
         await _connectionMultiplexer
             .GetDatabase(database)
-            .StringSetAsync(key, value, expiry);
+            .StringSetAsync(
+                [new KeyValuePair<RedisKey, RedisValue>(key, value)],
+                expiry: new Expiration(expiry ?? TimeSpan.FromSeconds(-1)));
 
     public async Task<bool> DeleteKeyAsync(string key, int database = 0) =>
         await _connectionMultiplexer

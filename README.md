@@ -1,6 +1,6 @@
 # NoteKeeper
 
-A modern note management application built with **.NET 9** and **PostgreSQL**, following **Clean Architecture** principles.
+A modern note management application built with **.NET 10** and **PostgreSQL**, following **Clean Architecture** principles.
 
 ---
 

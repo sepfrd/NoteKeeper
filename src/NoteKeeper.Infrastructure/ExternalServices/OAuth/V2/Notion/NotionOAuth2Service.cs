@@ -10,7 +10,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
@@ -21,6 +20,7 @@ using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Shared.Constants;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Notion;
 
@@ -73,7 +73,7 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         if (user is null)
         {
-            return DomainResult<string?>.CreateFailure(ErrorMessages.Unauthorized, StatusCodes.Status401Unauthorized);
+            return DomainResult<string?>.CreateFailure(Errors.Unauthorized, StatusCodes.Status401Unauthorized);
         }
 
         if (user.ExternalProviderAccounts.All(account => account.ProviderName != ExternalProviderConstants.Notion))
@@ -115,7 +115,10 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         if (!response.IsSuccessStatusCode)
         {
-            return DomainResult<string?>.CreateFailure(_failureMessage, StatusCodes.Status500InternalServerError);
+            return DomainResult<string?>.CreateFailure(
+                Errors.InternalServerError,
+                StatusCodes.Status500InternalServerError,
+                _failureMessage);
         }
 
         var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -126,7 +129,10 @@ public class NotionOAuth2Service : INotionOAuth2Service
         {
             _logger.LogCritical(LogMessages.DeserializationErrorTemplate, typeof(NotionTokenResponseDto));
 
-            return DomainResult<string?>.CreateFailure(_failureMessage, StatusCodes.Status500InternalServerError);
+            return DomainResult<string?>.CreateFailure(
+                Errors.InternalServerError,
+                StatusCodes.Status500InternalServerError,
+                _failureMessage);
         }
 
         var isNotionTokenStored = await StoreNotionTokensAsync(
@@ -141,7 +147,10 @@ public class NotionOAuth2Service : INotionOAuth2Service
 
         _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(NotionToken), StringConstants.CreateActionName);
 
-        return DomainResult<string?>.CreateFailure(_failureMessage, StatusCodes.Status500InternalServerError);
+        return DomainResult<string?>.CreateFailure(
+            Errors.InternalServerError,
+            StatusCodes.Status500InternalServerError,
+            _failureMessage);
     }
 
     private DomainResult<string?> NotionGenerateOAuth2RequestUrl(User user)

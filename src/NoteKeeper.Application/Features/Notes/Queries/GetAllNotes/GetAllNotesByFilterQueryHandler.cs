@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Shared.Cqrs.Queries;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
 
@@ -42,7 +42,8 @@ public class GetAllNotesByFilterQueryHandler : IQueryHandler<GetAllNotesByFilter
 
             return PaginatedDomainResult<IEnumerable<NoteDto>>.CreateFailure(
                 ErrorMessages.InternalServerError,
-                StatusCodes.Status500InternalServerError);
+                StatusCodes.Status500InternalServerError,
+                Errors.InternalServerError);
         }
 
         var response = PaginatedDomainResult<IEnumerable<NoteDto>>.CreateSuccess(

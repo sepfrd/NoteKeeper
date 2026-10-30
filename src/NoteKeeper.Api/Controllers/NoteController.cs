@@ -7,11 +7,12 @@ using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
 using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests.Filters;
 using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Shared.Cqrs.Commands;
+using NoteKeeper.Shared.Cqrs.Queries;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -56,7 +57,10 @@ public class NoteController : ControllerBase
 
         if (!validationResult.IsValid)
         {
-            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+            return BadRequest(DomainResult.CreateBaseFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                validationResult.ToString()));
         }
 
         var signedInUserUuid = _authService.GetSignedInUserUuid()!;
@@ -113,7 +117,10 @@ public class NoteController : ControllerBase
 
         if (!validationResult.IsValid)
         {
-            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+            return BadRequest(DomainResult.CreateBaseFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                validationResult.ToString()));
         }
 
         var signedInUserUuid = _authService.GetSignedInUserUuid()!;

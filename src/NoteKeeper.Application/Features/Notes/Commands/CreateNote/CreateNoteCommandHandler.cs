@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Shared.Constants;
+using NoteKeeper.Shared.Cqrs.Commands;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Commands.CreateNote;
 
@@ -34,7 +34,7 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
         if (user is null)
         {
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.Unauthorized,
+                Errors.Unauthorized,
                 StatusCodes.Status401Unauthorized);
         }
 
@@ -45,7 +45,7 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
             _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(CreateNoteCommand), typeof(Note));
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
@@ -60,7 +60,7 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
             _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(Note), StringConstants.CreateActionName);
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
@@ -73,12 +73,12 @@ public class CreateNoteCommandHandler : ICommandHandler<CreateNoteCommand, Domai
             _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(Note), typeof(NoteDto));
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
         var message = string.Format(SuccessMessages.CreateTemplate, nameof(Note).Humanize(LetterCasing.LowerCase));
 
-        return DomainResult<NoteDto>.CreateSuccess(message, StatusCodes.Status201Created, noteResponseDto);
+        return DomainResult<NoteDto>.CreateSuccess(noteResponseDto, StatusCodes.Status201Created, message);
     }
 }

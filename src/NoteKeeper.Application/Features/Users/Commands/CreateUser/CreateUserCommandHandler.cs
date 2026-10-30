@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Users.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Shared.Cqrs.Commands;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Users.Commands.CreateUser;
 
@@ -35,7 +35,10 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
                 command.Username,
                 nameof(User.Username).ToLowerInvariant());
 
-            return DomainResult<UserDto>.CreateFailure(message, StatusCodes.Status400BadRequest);
+            return DomainResult<UserDto>.CreateFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                message);
         }
 
         var isEmailUnique = await _unitOfWork.UserRepository.IsEmailUniqueAsync(command.Email, cancellationToken);
@@ -48,7 +51,7 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
                 command.Email,
                 nameof(User.Email).ToLowerInvariant());
 
-            return DomainResult<UserDto>.CreateFailure(message, StatusCodes.Status400BadRequest);
+            return DomainResult<UserDto>.CreateFailure(Errors.BadRequest, StatusCodes.Status400BadRequest, message);
         }
 
         var user = _mappingService.Map<CreateUserCommand, User>(command);
@@ -58,7 +61,7 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
             _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(CreateUserCommand), typeof(User));
 
             return DomainResult<UserDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
@@ -73,6 +76,6 @@ public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, Domai
             SuccessMessages.Signup,
             command.Username);
 
-        return DomainResult<UserDto>.CreateSuccess(successMessage, StatusCodes.Status201Created, userDto!);
+        return DomainResult<UserDto>.CreateSuccess(userDto!, StatusCodes.Status201Created, successMessage);
     }
 }

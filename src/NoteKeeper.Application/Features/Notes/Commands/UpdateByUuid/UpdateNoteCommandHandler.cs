@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Shared.Constants;
+using NoteKeeper.Shared.Cqrs.Commands;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
 
@@ -34,7 +34,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
         if (user is null)
         {
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.Unauthorized,
+                Errors.Unauthorized,
                 StatusCodes.Status401Unauthorized);
         }
 
@@ -47,7 +47,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
                 nameof(Note).Humanize(LetterCasing.LowerCase),
                 request.NoteUuid);
 
-            return DomainResult<NoteDto>.CreateFailure(notFoundMessage, StatusCodes.Status404NotFound);
+            return DomainResult<NoteDto>.CreateFailure(Errors.NotFound, StatusCodes.Status404NotFound, notFoundMessage);
         }
 
         if (note.UserId != user.Id)
@@ -57,14 +57,18 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
                 StringConstants.UpdateActionName.Humanize(LetterCasing.LowerCase),
                 nameof(Note).Humanize(LetterCasing.LowerCase));
 
-            return DomainResult<NoteDto>.CreateFailure(forbiddenMessage, StatusCodes.Status403Forbidden);
+            return DomainResult<NoteDto>.CreateFailure(
+                Errors.Forbidden,
+                StatusCodes.Status403Forbidden,
+                forbiddenMessage);
         }
 
         if (request.NewTitle == note.Title && request.NewContent == note.Content)
         {
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.IdenticalNewPropertyValues,
-                StatusCodes.Status400BadRequest);
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                ErrorMessages.IdenticalNewPropertyValues);
         }
 
         var updatedNote = _mappingService.Map(request, note);
@@ -77,7 +81,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
                 typeof(Note));
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
@@ -90,7 +94,7 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
             _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(Note), StringConstants.UpdateActionName);
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
@@ -101,12 +105,12 @@ public class UpdateNoteCommandHandler : ICommandHandler<UpdateNoteCommand, Domai
             _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(Note), typeof(NoteDto));
 
             return DomainResult<NoteDto>.CreateFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 
         var message = string.Format(SuccessMessages.UpdateTemplate, nameof(Note).Humanize(LetterCasing.LowerCase));
 
-        return DomainResult<NoteDto>.CreateSuccess(message, StatusCodes.Status200OK, noteResponseDto);
+        return DomainResult<NoteDto>.CreateSuccess(noteResponseDto, StatusCodes.Status200OK, message);
     }
 }

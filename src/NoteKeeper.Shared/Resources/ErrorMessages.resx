@@ -83,4 +83,13 @@
     <data name="InvalidRedirectUri" xml:space="preserve">
         <value>Invalid Redirect URI</value>
     </data>
+    <data name="NotFoundError" xml:space="preserve">
+        <value>The entity was not found.</value>
+    </data>
+    <data name="BadRequest" xml:space="preserve">
+        <value>Bad Request</value>
+    </data>
+    <data name="Forbidden" xml:space="preserve">
+        <value>Forbidden</value>
+    </data>
 </root>

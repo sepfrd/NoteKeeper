@@ -1,5 +1,5 @@
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.ExternalServices.OAuth.V2.Google.Models;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

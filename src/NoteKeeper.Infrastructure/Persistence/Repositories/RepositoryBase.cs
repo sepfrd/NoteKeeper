@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NoteKeeper.Application.Interfaces;
 using NoteKeeper.Application.Interfaces.Repositories;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Interfaces;
 using NoteKeeper.Infrastructure.Common.Constants;
 using NoteKeeper.Infrastructure.Interfaces;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Infrastructure.Persistence.Repositories;
 

@@ -1,4 +1,6 @@
-using NoteKeeper.Application.Interfaces.CQRS;
+using NoteKeeper.Application.Features.Users.Dtos;
+using NoteKeeper.Shared.Cqrs.Commands;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Users.Commands.CreateUser;
 
@@ -7,4 +9,4 @@ public record CreateUserCommand(
     string Password,
     string Email,
     string? FirstName,
-    string? LastName) : ICommand;
+    string? LastName) : ICommand<DomainResult<UserDto>>;

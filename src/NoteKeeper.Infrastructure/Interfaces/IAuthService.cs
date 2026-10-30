@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Common.Dtos.Responses;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Infrastructure.Interfaces;
 

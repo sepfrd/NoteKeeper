@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Features.Notes.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
+using NoteKeeper.Shared.Cqrs.Queries;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
 
@@ -37,20 +37,18 @@ public class GetSingleNoteQueryHandler : IQueryHandler<GetSingleNoteQuery, Domai
                 nameof(Note).Humanize(LetterCasing.LowerCase),
                 query.NoteUuid);
 
-            return DomainResult<NoteDto>.CreateFailure(notFoundMessage, StatusCodes.Status404NotFound);
+            return DomainResult<NoteDto>.CreateFailure(Errors.NotFound, StatusCodes.Status404NotFound, notFoundMessage);
         }
 
         var noteResponseDto = _mappingService.Map<Note, NoteDto>(note);
 
         if (noteResponseDto is not null)
         {
-            return DomainResult<NoteDto>.CreateSuccess(null, StatusCodes.Status200OK, noteResponseDto);
+            return DomainResult<NoteDto>.CreateSuccess(noteResponseDto, StatusCodes.Status200OK);
         }
 
         _logger.LogCritical(LogMessages.MappingErrorTemplate, typeof(Note), typeof(NoteDto));
 
-        return DomainResult<NoteDto>.CreateFailure(
-            ErrorMessages.InternalServerError,
-            StatusCodes.Status500InternalServerError);
+        return DomainResult<NoteDto>.CreateFailure(Errors.InternalServerError, StatusCodes.Status500InternalServerError);
     }
 }

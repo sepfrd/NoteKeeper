@@ -39,12 +39,12 @@ public class GoogleOAuth2Controller : ControllerBase
 
         var result = await _googleOAuth2Service.CompleteGoogleAuthenticationAsync(exchangeRequestDto, cancellationToken);
 
-        if (!result.IsSuccess)
+        if (!result.Success)
         {
             return StatusCode(result.StatusCode, new
             {
                 Data = result.Data?.AuthResponseDto.Jwt,
-                result.IsSuccess,
+                result.Success,
                 result.Message,
                 result.StatusCode
             });

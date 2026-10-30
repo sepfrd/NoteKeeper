@@ -12,18 +12,10 @@ using NoteKeeper.Api.Authentication;
 using NoteKeeper.Api.Constants;
 using NoteKeeper.Api.ExceptionHandlers;
 using NoteKeeper.Api.Transformers;
-using NoteKeeper.Application.Features.Notes.Commands.CreateNote;
-using NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
+using NoteKeeper.Application;
 using NoteKeeper.Application.Features.Notes.Commands.UpdateByUuid;
-using NoteKeeper.Application.Features.Notes.Dtos;
-using NoteKeeper.Application.Features.Notes.Queries.GetAllNotes;
-using NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
-using NoteKeeper.Application.Features.Notes.Queries.GetNoteByUuid;
 using NoteKeeper.Application.Features.Users.Commands.CreateUser;
-using NoteKeeper.Application.Features.Users.Dtos;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
@@ -38,6 +30,7 @@ using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Infrastructure.Persistence;
 using NoteKeeper.Infrastructure.Services;
 using NoteKeeper.Infrastructure.Validators;
+using NoteKeeper.Shared;
 using NoteKeeper.Shared.Utilities;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
@@ -80,8 +73,7 @@ public static class ServiceCollectionExtensions
                         .AddDocumentTransformer<DocumentInfoTransformer>())
                 .AddApiControllers()
                 .AddServices()
-                .AddCommandHandlers()
-                .AddQueryHandlers()
+                .AddCqrs(typeof(ApplicationAssemblyMarker).Assembly)
                 .AddDatabase(appOptions)
                 .AddAuth()
                 .AddJsonSerializerOptions()
@@ -121,19 +113,6 @@ public static class ServiceCollectionExtensions
                 .AddScoped<IGoogleOAuth2Service, GoogleOAuth2Service>()
                 .AddScoped<INotionOAuth2Service, NotionOAuth2Service>()
                 .AddScoped<IMappingService, MappingService>();
-
-        public IServiceCollection AddCommandHandlers() =>
-            services
-                .AddScoped<ICommandHandler<CreateUserCommand, DomainResult<UserDto>>, CreateUserCommandHandler>()
-                .AddScoped<ICommandHandler<CreateNoteCommand, DomainResult<NoteDto>>, CreateNoteCommandHandler>()
-                .AddScoped<ICommandHandler<DeleteNoteCommand, DomainResult>, DeleteNoteCommandHandler>()
-                .AddScoped<ICommandHandler<UpdateNoteCommand, DomainResult<NoteDto>>, UpdateNoteCommandHandler>();
-
-        public IServiceCollection AddQueryHandlers() =>
-            services
-                .AddScoped<IQueryHandler<GetAllNotesByFilterQuery, PaginatedDomainResult<IEnumerable<NoteDto>>>, GetAllNotesByFilterQueryHandler>()
-                .AddScoped<IQueryHandler<GetAllNotesCountQuery, DomainResult<long>>, GetAllNotesCountQueryHandler>()
-                .AddScoped<IQueryHandler<GetSingleNoteQuery, DomainResult<NoteDto>>, GetSingleNoteQueryHandler>();
 
         public IServiceCollection AddDatabase(AppOptions appOptions) =>
             services

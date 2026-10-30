@@ -2,11 +2,11 @@ using Humanizer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Shared.Constants;
+using NoteKeeper.Shared.Cqrs.Commands;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Commands.DeleteByUuid;
 
@@ -27,7 +27,7 @@ public class DeleteNoteCommandHandler : ICommandHandler<DeleteNoteCommand, Domai
 
         if (user is null)
         {
-            return DomainResult.CreateBaseFailure(ErrorMessages.Unauthorized, StatusCodes.Status401Unauthorized);
+            return DomainResult.CreateBaseFailure(Errors.Unauthorized, StatusCodes.Status401Unauthorized);
         }
 
         var note = await _unitOfWork.NoteRepository.GetByIdentityAsync(command.NoteUuid, cancellationToken);
@@ -39,7 +39,7 @@ public class DeleteNoteCommandHandler : ICommandHandler<DeleteNoteCommand, Domai
                 nameof(Note).Humanize(LetterCasing.LowerCase),
                 command.NoteUuid);
 
-            return DomainResult.CreateBaseFailure(notFoundMessage, StatusCodes.Status404NotFound);
+            return DomainResult.CreateBaseFailure(Errors.NotFound, StatusCodes.Status404NotFound, notFoundMessage);
         }
 
         if (note.UserId != user.Id)
@@ -49,7 +49,7 @@ public class DeleteNoteCommandHandler : ICommandHandler<DeleteNoteCommand, Domai
                 StringConstants.DeleteActionName.Humanize(LetterCasing.LowerCase),
                 nameof(Note).Humanize(LetterCasing.LowerCase));
 
-            return DomainResult.CreateBaseFailure(forbiddenMessage, StatusCodes.Status403Forbidden);
+            return DomainResult.CreateBaseFailure(Errors.Forbidden, StatusCodes.Status403Forbidden, forbiddenMessage);
         }
 
         _unitOfWork.NoteRepository.Delete(note);
@@ -61,7 +61,7 @@ public class DeleteNoteCommandHandler : ICommandHandler<DeleteNoteCommand, Domai
             _logger.LogCritical(LogMessages.DatabasePersistenceErrorTemplate, typeof(Note), StringConstants.DeleteActionName);
 
             return DomainResult.CreateBaseFailure(
-                ErrorMessages.InternalServerError,
+                Errors.InternalServerError,
                 StatusCodes.Status500InternalServerError);
         }
 

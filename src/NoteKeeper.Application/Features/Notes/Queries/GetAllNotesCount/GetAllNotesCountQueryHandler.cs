@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
+using NoteKeeper.Shared.Cqrs.Queries;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Features.Notes.Queries.GetAllNotesCount;
 
@@ -18,6 +18,6 @@ public class GetAllNotesCountQueryHandler : IQueryHandler<GetAllNotesCountQuery,
     {
         var count = await _unitOfWork.NoteRepository.GetCountAsync(null, cancellationToken);
 
-        return DomainResult<long>.CreateSuccess(null, StatusCodes.Status200OK, count);
+        return DomainResult<long>.CreateSuccess(count, StatusCodes.Status200OK);
     }
 }

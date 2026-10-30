@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Interfaces;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Application.Interfaces.Repositories;
 

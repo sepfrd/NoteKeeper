@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using NoteKeeper.Api.Constants;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -31,12 +31,15 @@ public class AuthController : ControllerBase
 
         if (!validationResult.IsValid)
         {
-            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+            return BadRequest(DomainResult.CreateBaseFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                validationResult.ToString()));
         }
 
         var result = await _authService.LoginAsync(loginRequestDto, cancellationToken);
 
-        if (result.IsSuccess)
+        if (result.Success)
         {
             Response.Cookies.Append(KeyConstants.RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
             {
@@ -50,7 +53,7 @@ public class AuthController : ControllerBase
         return StatusCode(result.StatusCode, new
         {
             Data = result.Data?.Jwt,
-            result.IsSuccess,
+            result.Success,
             result.Message,
             result.StatusCode
         });
@@ -82,7 +85,7 @@ public class AuthController : ControllerBase
 
         var result = await _authService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
 
-        if (result.IsSuccess)
+        if (result.Success)
         {
             Response.Cookies.Append(KeyConstants.RefreshTokenCookieKey, result.Data!.RefreshToken, new CookieOptions
             {
@@ -105,7 +108,7 @@ public class AuthController : ControllerBase
         return StatusCode(result.StatusCode, new
         {
             Data = result.Data?.Jwt,
-            result.IsSuccess,
+            result.Success,
             result.Message,
             result.StatusCode
         });

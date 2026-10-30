@@ -2,8 +2,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using NoteKeeper.Application.Features.Users.Commands.CreateUser;
 using NoteKeeper.Application.Features.Users.Dtos;
-using NoteKeeper.Application.Interfaces.CQRS;
-using NoteKeeper.Domain.Common;
+using NoteKeeper.Shared.Cqrs.Commands;
+using NoteKeeper.Shared.Results;
 
 namespace NoteKeeper.Api.Controllers;
 
@@ -27,7 +27,10 @@ public class UserController : ControllerBase
 
         if (!validationResult.IsValid)
         {
-            return BadRequest(DomainResult.CreateBaseFailure(validationResult.ToString(), StatusCodes.Status400BadRequest));
+            return BadRequest(DomainResult.CreateBaseFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                validationResult.ToString()));
         }
 
         var result = await _createUserCommandHandler.HandleAsync(command, cancellationToken);

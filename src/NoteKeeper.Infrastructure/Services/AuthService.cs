@@ -2,7 +2,6 @@ using System.Linq.Expressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NoteKeeper.Application.Interfaces;
-using NoteKeeper.Domain.Common;
 using NoteKeeper.Domain.Entities;
 using NoteKeeper.Domain.Enums;
 using NoteKeeper.Infrastructure.Common.Constants;
@@ -11,6 +10,7 @@ using NoteKeeper.Infrastructure.Common.Dtos.Requests;
 using NoteKeeper.Infrastructure.Common.Dtos.Responses;
 using NoteKeeper.Infrastructure.Interfaces;
 using NoteKeeper.Shared.Resources;
+using NoteKeeper.Shared.Results;
 using NoteKeeper.Shared.Utilities;
 
 namespace NoteKeeper.Infrastructure.Services;
@@ -41,7 +41,10 @@ public class AuthService : IAuthService
     {
         if (IsSignedIn())
         {
-            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.AlreadySignedIn, StatusCodes.Status400BadRequest);
+            return DomainResult<AuthResponseDto?>.CreateFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                ErrorMessages.AlreadySignedIn);
         }
 
         var user = await GetByUsernameOrEmailAsync(loginRequestDto.UsernameOrEmail, cancellationToken);
@@ -50,24 +53,33 @@ public class AuthService : IAuthService
             user.RegistrationType != RegistrationType.Direct ||
             !RegexValidator.PasswordRegex().IsMatch(loginRequestDto.Password))
         {
-            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.InvalidCredentials, StatusCodes.Status400BadRequest);
+            return DomainResult<AuthResponseDto?>.CreateFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                ErrorMessages.InvalidCredentials);
         }
 
         var isPasswordValid = CryptographyHelper.ValidatePassword(loginRequestDto.Password, user.PasswordHash!);
 
         if (!isPasswordValid)
         {
-            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.InvalidCredentials, StatusCodes.Status400BadRequest);
+            return DomainResult<AuthResponseDto?>.CreateFailure(
+                Errors.BadRequest,
+                StatusCodes.Status400BadRequest,
+                ErrorMessages.InvalidCredentials);
         }
 
         var jwt = _tokenService.GenerateEd25519Jwt(user);
 
         var refreshToken = await _tokenService.GenerateNewRefreshTokenAsync(user.Id.ToString());
 
-        return DomainResult<AuthResponseDto?>.CreateSuccess(SuccessMessages.Login, StatusCodes.Status200OK, new AuthResponseDto(
-            jwt,
-            refreshToken,
-            DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
+        return DomainResult<AuthResponseDto?>.CreateSuccess(
+            new AuthResponseDto(
+                jwt,
+                refreshToken,
+                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
+            StatusCodes.Status200OK,
+            SuccessMessages.Login);
     }
 
     public async Task<DomainResult<AuthResponseDto?>> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
@@ -79,7 +91,10 @@ public class AuthService : IAuthService
 
         if (redisValue.IsNullOrEmpty)
         {
-            return DomainResult<AuthResponseDto?>.CreateFailure(ErrorMessages.Unauthorized, StatusCodes.Status401Unauthorized);
+            return DomainResult<AuthResponseDto?>.CreateFailure(
+                Errors.Unauthorized,
+                StatusCodes.Status401Unauthorized,
+                ErrorMessages.Unauthorized);
         }
 
         var userId = (long)redisValue;
@@ -90,10 +105,13 @@ public class AuthService : IAuthService
 
         var newRefreshToken = await _tokenService.GenerateNewRefreshTokenAsync(userId.ToString());
 
-        return DomainResult<AuthResponseDto?>.CreateSuccess(SuccessMessages.TokenRefresh, StatusCodes.Status200OK, new AuthResponseDto(
-            jwt,
-            newRefreshToken,
-            DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)));
+        return DomainResult<AuthResponseDto?>.CreateSuccess(
+            new AuthResponseDto(
+                jwt,
+                newRefreshToken,
+                DateTimeOffset.UtcNow.AddMinutes(_appOptions.JwtOptions.RefreshTokenLifeTimeInMinutes)),
+            StatusCodes.Status200OK,
+            SuccessMessages.TokenRefresh);
     }
 
     public string? GetSignedInUserUuid() =>

@@ -7,12 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aigamo.ResXGenerator" Version="4.3.0">
+        <PackageReference Include="Aigamo.ResXGenerator" Version="4.4.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="BCrypt.Net-Next" Version="4.0.3"/>
-        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2"/>
+        <PackageReference Include="BCrypt.Net-Next" Version="4.2.0"/>
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0"/>
+        <PackageReference Include="Scrutor" Version="7.0.0"/>
     </ItemGroup>
 
     <PropertyGroup>
